@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resident Reviews Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ink: #0f0e0d;
+    --paper: #f7f4ef;
+    --cream: #ede9e1;
+    --gold: #c9a84c;
+    --gold-light: #f0e6c8;
+    --rust: #c2522b;
+    --forest: #2d5a3d;
+    --sky: #3a6b8a;
+    --muted: #7a7468;
+    --border: #d4cfc6;
+    --card: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--gold);
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+  }
+  header .subtitle { font-size: 0.75rem; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
+  .header-badge {
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 2px;
+  }
+
+  /* UPLOAD ZONE */
+  #upload-zone {
+    margin: 40px auto;
+    max-width: 900px;
+    padding: 0 24px;
+  }
+  .upload-card {
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 60px 40px;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+  .upload-card:hover { border-color: var(--gold); background: var(--gold-light); }
+  .upload-card h2 { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 10px; }
+  .upload-card p { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
+  .upload-card .format-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    background: var(--cream);
+    border-radius: 4px;
+    padding: 10px 16px;
+    display: inline-block;
+    margin-bottom: 24px;
+    font-family: monospace;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 12px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--forest); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    padding: 10px 22px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    margin-left: 12px;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--ink); }
+  #file-input { display: none; }
+
+  /* PROPERTY SELECTOR */
+  #property-bar {
+    background: var(--ink);
+    padding: 0 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    display: none;
+  }
+  .prop-tab {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 16px 22px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+  .prop-tab:hover { color: var(--paper); }
+  .prop-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* MAIN DASHBOARD */
+  #dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 24px 60px;
+    display: none;
+  }
+
+  /* LOADING */
+  #loading {
+    display: none;
+    text-align: center;
+    padding: 80px 24px;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { color: var(--muted); font-size: 0.9rem; }
+  #loading .loading-step { font-style: italic; margin-top: 8px; font-size: 0.82rem; }
+
+  /* STAT CARDS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold);
+  }
+  .stat-card.negative::before { background: var(--rust); }
+  .stat-card.positive::before { background: var(--forest); }
+  .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; line-height: 1; }
+  .stat-delta { font-size: 0.78rem; margin-top: 6px; }
+  .delta-up { color: var(--forest); }
+  .delta-down { color: var(--rust); }
+
+  /* SECTION */
+  .section { margin-bottom: 32px; }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
+  .section-meta { font-size: 0.78rem; color: var(--muted); }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .insight-box::after {
+    content: '"';
+    font-family: 'DM Serif Display', serif;
+    font-size: 10rem;
+    color: rgba(201,168,76,0.12);
+    position: absolute;
+    top: -20px; right: 20px;
+    line-height: 1;
+  }
+  .insight-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .insight-text { font-size: 0.95rem; line-height: 1.7; color: #e8e4dc; }
+  .insight-text strong { color: var(--gold); font-weight: 600; }
+
+  /* TWO COLUMNS */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* CHART CONTAINER */
+  .chart-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 24px;
+    border: 1px solid var(--border);
+  }
+  .chart-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 18px; font-weight: 600; }
+  canvas { width: 100% !important; }
+
+  /* THEME PILLS */
+  .theme-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .theme-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 24px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border: 1.5px solid transparent;
+    cursor: default;
+    transition: transform 0.15s;
+  }
+  .theme-pill:hover { transform: translateY(-1px); }
+  .theme-pill.positive { background: #e8f4ec; color: var(--forest); border-color: #b8d8c2; }
+  .theme-pill.negative { background: #faeee9; color: var(--rust); border-color: #e8c4b8; }
+  .theme-pill.neutral { background: var(--cream); color: var(--muted); border-color: var(--border); }
+  .pill-count {
+    background: rgba(0,0,0,0.08);
+    border-radius: 12px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  /* REVIEW CARDS */
+  .review-list { display: flex; flex-direction: column; gap: 12px; }
+  .review-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    border-left: 4px solid var(--border);
+  }
+  .review-card.r5 { border-left-color: var(--forest); }
+  .review-card.r4 { border-left-color: #7cbb8a; }
+  .review-card.r3 { border-left-color: var(--gold); }
+  .review-card.r2 { border-left-color: #e8956b; }
+  .review-card.r1 { border-left-color: var(--rust); }
+  .review-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .stars { color: var(--gold); font-size: 0.85rem; }
+  .review-date { font-size: 0.75rem; color: var(--muted); }
+  .review-author { font-size: 0.78rem; font-weight: 600; }
+  .review-body { font-size: 0.85rem; line-height: 1.6; color: #3a3733; }
+  .review-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .rtag {
+    font-size: 0.68rem;
+    padding: 2px 9px;
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* OPPORTUNITIES */
+  .opp-list { display: flex; flex-direction: column; gap: 10px; }
+  .opp-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .opp-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .opp-icon.high { background: #faeee9; }
+  .opp-icon.med { background: var(--gold-light); }
+  .opp-icon.low { background: #e8f4ec; }
+  .opp-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; }
+  .opp-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  .opp-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .opp-badge.high { background: #faeee9; color: var(--rust); }
+  .opp-badge.med { background: var(--gold-light); color: #8a6a1a; }
+  .opp-badge.low { background: #e8f4ec; color: var(--forest); }
+
+  /* TREND CHART BARS */
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    background: var(--gold);
+    transition: background 0.2s;
+    cursor: default;
+    position: relative;
+  }
+  .bar:hover { background: var(--ink); }
+  .bar-label { font-size: 0.6rem; color: var(--muted); text-align: center; }
+
+  /* SENTIMENT DONUT */
+  .donut-wrapper { display: flex; align-items: center; gap: 24px; }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ERROR */
+  .error-box {
+    background: #faeee9;
+    border: 1px solid #e8c4b8;
+    border-radius: 6px;
+    padding: 20px 24px;
+    color: var(--rust);
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+  }
+
+  /* PORTFOLIO SCORECARD */
+  .scorecard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .scorecard-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .scorecard-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .scorecard-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .scorecard-card.trend-up::before { background: var(--forest); }
+  .scorecard-card.trend-down::before { background: var(--rust); }
+  .scorecard-card.trend-flat::before { background: var(--gold); }
+  .scorecard-prop-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 12px; color: var(--ink); }
+  .scorecard-rating-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .scorecard-rating { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; }
+  .scorecard-stars { color: var(--gold); font-size: 0.85rem; letter-spacing: 1px; }
+  .scorecard-delta {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .scorecard-delta.up { background: #e8f4ec; color: var(--forest); }
+  .scorecard-delta.down { background: #faeee9; color: var(--rust); }
+  .scorecard-delta.flat { background: var(--gold-light); color: #8a6a1a; }
+  .scorecard-bar-row { display: flex; gap: 3px; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+  .scorecard-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+  .scorecard-meta-item { font-size: 0.72rem; color: var(--muted); }
+  .scorecard-meta-item strong { color: var(--ink); font-weight: 600; }
+  .portfolio-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .month-badge {
+    background: var(--ink);
+    color: var(--gold);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    display: inline-block;
+  }
+
+  @media (max-width: 768px) {
+    header { padding: 20px 20px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .two-col, .three-col { grid-template-columns: 1fr; }
+    #dashboard { padding: 24px 16px; }
+    #property-bar { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Resident Reviews Intelligence</h1>
+    <div class="subtitle">Asset Management · Reputation Analytics</div>
+  </div>
+  <div class="header-badge">AI Powered</div>
+</header>
+
+<div id="property-bar"></div>
+
+<!-- UPLOAD ZONE -->
+<div id="upload-zone">
+  <div class="upload-card" onclick="document.getElementById('file-input').click()" id="drop-zone">
+    <h2>Upload Your Reviews Export</h2>
+    <p>Export your Google reviews via Outscraper (or similar), then drop the CSV here.<br>Claude will analyze sentiment, surface themes, and identify operational opportunities.</p>
+    <div class="format-hint">Expected columns: property, date, rating, review_text, author</div>
+    <button class="btn-primary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Upload CSV</button>
+    <button class="btn-secondary" onclick="event.stopPropagation(); loadDemo()">Load Demo Data</button>
+    <input type="file" id="file-input" accept=".csv" onchange="handleFile(this.files[0])">
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Analyzing reviews with Claude AI...</p>
+  <p class="loading-step" id="loading-step">Parsing review data</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ─── DEMO DATA ───────────────────────────────────────────────────────────────
+const DEMO_DATA = [
+  // Maple Heights
+  {property:"Maple Heights",date:"2024-01-15",rating:5,review_text:"Love living here! The maintenance team responds same day and the leasing office staff are so friendly. Pool area is always clean.",author:"Sarah M."},
+  {property:"Maple Heights",date:"2024-01-28",rating:2,review_text:"Parking is a nightmare. Management keeps promising covered spots but nothing changes. Also the gym equipment is broken half the time.",author:"Tom K."},
+  {property:"Maple Heights",date:"2024-02-10",rating:4,review_text:"Great location near the highway, my commute is easy. Noise from neighbors can be an issue on weekends but overall happy with the apartment.",author:"Priya S."},
+  {property:"Maple Heights",date:"2024-02-22",rating:1,review_text:"Mold in the bathroom for months. Maintenance put in a work order but nobody ever showed up. Had to escalate to management three times.",author:"James R."},
+  {property:"Maple Heights",date:"2024-03-05",rating:5,review_text:"The renovated units look amazing. Really modern kitchen and the new appliances are fantastic. Worth the extra cost.",author:"Linda W."},
+  {property:"Maple Heights",date:"2024-03-18",rating:3,review_text:"Package delivery is chaotic. Packages get lost or left in wrong spots constantly. Need a better system like Amazon lockers.",author:"Dev P."},
+  {property:"Maple Heights",date:"2024-04-02",rating:4,review_text:"Staff was helpful when I moved in. Love the dog-friendly policy. The dog park could use some upgrades though.",author:"Amy C."},
+  {property:"Maple Heights",date:"2024-04-15",rating:2,review_text:"Roaches in my unit. Pest control came twice but the problem keeps coming back. Not acceptable for what we're paying.",author:"Marcus L."},
+  {property:"Maple Heights",date:"2024-04-28",rating:5,review_text:"Best apartment I've lived in. Clean, quiet floor, helpful staff. Maintenance is incredibly fast. Renewing my lease for sure.",author:"Kate B."},
+  {property:"Maple Heights",date:"2024-05-10",rating:3,review_text:"The gym is decent but really small for the number of residents. Pool gets overcrowded on hot days with no reservation system.",author:"Ryan T."},
+  {property:"Maple Heights",date:"2024-05-22",rating:4,review_text:"Love the location and the layout of my unit. Rent went up more than I expected at renewal but still a fair deal for the area.",author:"Nadia H."},
+  {property:"Maple Heights",date:"2024-06-01",rating:1,review_text:"Criminal - they charged me move out fees for damage that was already there before I moved in. I have photos. Now ignored by management.",author:"Phil D."},
+  {property:"Maple Heights",date:"2024-06-14",rating:5,review_text:"Absolutely love it here. The community events are fun, staff knows your name. It really feels like a community not just an apartment.",author:"Olivia F."},
+  {property:"Maple Heights",date:"2024-06-26",rating:4,review_text:"Nice property overall. Parking situation improved with the new permit system. Trash room cleanliness is much better than before.",author:"Sam N."},
+  {property:"Maple Heights",date:"2024-07-08",rating:2,review_text:"AC broke in June and took 2 weeks to fix. During a heat wave. Management was unsympathetic. Will not renew my lease.",author:"Carl M."},
+  {property:"Maple Heights",date:"2024-07-20",rating:5,review_text:"Moving in was so smooth. The team walked me through everything and my unit was spotless. The amenities are top tier.",author:"Zoe A."},
+  {property:"Maple Heights",date:"2024-08-03",rating:3,review_text:"Okay place to live. Walls are thin and you hear everything from neighbors. Management is hit or miss depending on who you get.",author:"Ian W."},
+  {property:"Maple Heights",date:"2024-08-16",rating:4,review_text:"Great community vibe. Love the resident events. Maintenance crew is wonderful. Only complaint is the laundry machines need updating.",author:"Grace K."},
+  // Riverside Commons
+  {property:"Riverside Commons",date:"2024-01-10",rating:3,review_text:"Decent place but management is slow to respond to requests. The views are beautiful and the location is perfect for the price.",author:"Eric T."},
+  {property:"Riverside Commons",date:"2024-01-25",rating:5,review_text:"Incredible staff. Jessica at the front desk is a star. She solved my lease renewal issue in one call. Community is well kept.",author:"Maria G."},
+  {property:"Riverside Commons",date:"2024-02-08",rating:2,review_text:"Constant construction noise during the day for months. Nobody warned us. Management just said it was necessary. Very disruptive.",author:"Ron B."},
+  {property:"Riverside Commons",date:"2024-02-20",rating:4,review_text:"Love the riverfront trail access. Beautiful views from my unit. A little pricey but you're paying for the location and it's worth it.",author:"Susan K."},
+  {property:"Riverside Commons",date:"2024-03-04",rating:1,review_text:"Towed from my assigned spot twice in a month. Management says it's a vendor issue but do nothing to fix it. Absolutely infuriating.",author:"Bob A."},
+  {property:"Riverside Commons",date:"2024-03-17",rating:5,review_text:"Best managed property I've ever lived in. Responsive, clean, great amenities. The rooftop is a hidden gem.",author:"Tina W."},
+  {property:"Riverside Commons",date:"2024-04-01",rating:3,review_text:"Nice building but the concierge is often unavailable when you need them. Package room is a mess and things go missing sometimes.",author:"Leo J."},
+  {property:"Riverside Commons",date:"2024-04-13",rating:4,review_text:"Love the fitness center and yoga studio. Staff is friendly and professional. Only issue is elevator waits can be long at peak hours.",author:"Dana S."},
+  {property:"Riverside Commons",date:"2024-04-25",rating:2,review_text:"Trash compactor broken for 3 weeks. Trash piling up. This is a hygiene issue and management keeps saying they're working on it.",author:"Paul M."},
+  {property:"Riverside Commons",date:"2024-05-09",rating:5,review_text:"Happy resident for 2 years. Every issue gets resolved quickly. The neighborhood is safe and close to everything. Highly recommend.",author:"Ana L."},
+  {property:"Riverside Commons",date:"2024-05-21",rating:4,review_text:"Great apartment overall. Maintenance team is responsive and professional. Parking garage could use better lighting though.",author:"Chris R."},
+  {property:"Riverside Commons",date:"2024-06-04",rating:1,review_text:"Mold under the sink ignored for weeks. Health department should check this place. Nobody takes responsibility.",author:"Vera N."},
+  {property:"Riverside Commons",date:"2024-06-17",rating:5,review_text:"The renovation of the lobby and common areas looks fantastic. Management clearly invested in the property. Proud to live here.",author:"Jack D."},
+  {property:"Riverside Commons",date:"2024-06-29",rating:3,review_text:"Mixed feelings. Love the apartment and view. The leasing office sometimes takes days to respond to emails which is frustrating.",author:"Mia P."},
+  {property:"Riverside Commons",date:"2024-07-12",rating:4,review_text:"Good value for the location. Staff is improving. The new property manager seems much more engaged than the previous one.",author:"Fred C."},
+  {property:"Riverside Commons",date:"2024-07-24",rating:2,review_text:"Noise complaints never addressed. Loud parties from neighboring units every weekend and management says they can't do much.",author:"Anne S."},
+  {property:"Riverside Commons",date:"2024-08-06",rating:5,review_text:"Renewed again for the third year. Community is great, staff is amazing, location is perfect. Wouldn't want to live anywhere else.",author:"Tom V."},
+  {property:"Riverside Commons",date:"2024-08-19",rating:4,review_text:"Solid property. Recent upgrades to the pool area are great. Love the new furniture in common areas. Management listens to feedback.",author:"Nina B."},
+  // Elmwood at the Park
+  {property:"Elmwood at the Park",date:"2024-01-12",rating:4,review_text:"Great community. Quiet neighborhood, nice park access. The units are a bit dated but maintenance keeps everything working well.",author:"Ed P."},
+  {property:"Elmwood at the Park",date:"2024-01-28",rating:2,review_text:"Water pressure issues for months. First floor units have terrible pressure especially mornings. Plumber has been out twice with no fix.",author:"Liz C."},
+  {property:"Elmwood at the Park",date:"2024-02-12",rating:5,review_text:"Hidden gem of a property. The park access is amazing for my dog. Staff are warm and professional. Quiet and well-maintained.",author:"Henry F."},
+  {property:"Elmwood at the Park",date:"2024-02-24",rating:3,review_text:"The park access is the main draw. The actual apartments are showing their age. Carpet and appliances need updating in older units.",author:"Penny W."},
+  {property:"Elmwood at the Park",date:"2024-03-08",rating:1,review_text:"Break-in in the parking lot last month. Management did nothing to improve security cameras or lighting. Feel unsafe.",author:"Victor R."},
+  {property:"Elmwood at the Park",date:"2024-03-21",rating:5,review_text:"Wonderful management team. Mike in maintenance is so helpful and fast. The grounds are always beautiful, especially the landscaping.",author:"Carol B."},
+  {property:"Elmwood at the Park",date:"2024-04-05",rating:4,review_text:"Love this place. The renovation of building A looks great. Hope my building is next. Very family-friendly atmosphere.",author:"Steve M."},
+  {property:"Elmwood at the Park",date:"2024-04-18",rating:2,review_text:"Pest issue (ants) that reoccurs every spring. Management sends pest control but it comes back. Frustrating recurring issue.",author:"Diane H."},
+  {property:"Elmwood at the Park",date:"2024-04-30",rating:5,review_text:"Best place I've rented in this city. Honest management, quick repairs, beautiful grounds. My kids love the playground.",author:"Rachel S."},
+  {property:"Elmwood at the Park",date:"2024-05-14",rating:3,review_text:"Nice community but parking situation is rough if you have guests. Visitor parking fills up fast and enforcement is inconsistent.",author:"Brett T."},
+  {property:"Elmwood at the Park",date:"2024-05-27",rating:4,review_text:"Generally happy here. Landscaping is beautiful. The community newsletter is a nice touch. Management feels accessible and responsive.",author:"Alice W."},
+  {property:"Elmwood at the Park",date:"2024-06-09",rating:2,review_text:"Internet from the building provider is painfully slow and expensive. Forced bundled package with no alternatives. Feels like a scam.",author:"Omar F."},
+  {property:"Elmwood at the Park",date:"2024-06-22",rating:5,review_text:"Moved from out of state and this was the easiest leasing process ever. Virtual tours, quick communication, spotless unit on move-in.",author:"Gina N."},
+  {property:"Elmwood at the Park",date:"2024-07-05",rating:4,review_text:"The new playground addition is great for the kids. Common areas are well-kept. Lease renewal process was smooth this year.",author:"Mark C."},
+  {property:"Elmwood at the Park",date:"2024-07-18",rating:1,review_text:"Flooding in my unit after heavy rain. Management slow to respond. Damage to my belongings. Renters insurance saved me but management was useless.",author:"Kim O."},
+  {property:"Elmwood at the Park",date:"2024-07-30",rating:5,review_text:"Third year here and it keeps getting better. Staff is amazing, grounds look great. The community feel is what keeps me renewing.",author:"Barry H."},
+  {property:"Elmwood at the Park",date:"2024-08-12",rating:3,review_text:"Good location and nice grounds. The gym is quite small and equipment is outdated. Would love to see an upgrade there.",author:"Faye J."},
+  {property:"Elmwood at the Park",date:"2024-08-25",rating:4,review_text:"Really enjoy it here. Quiet, well maintained, friendly neighbors. Management team has improved a lot over the past year.",author:"Neil A."}
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let allData = [];
+let properties = [];
+let activeProperty = 'ALL';
+let analysisCache = {};
+
+// ─── FILE HANDLING ────────────────────────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: false,
+    quoteChar: '"',
+    newline: '',
+    complete: (res) => {
+      // Filter out blank rows but keep rows with review content
+      const cleaned = res.data.filter(r => r && (r.review_text || r.rating));
+      processData(cleaned);
+    },
+    error: (err) => alert('CSV parse error: ' + err.message)
+  });
+}
+
+function loadDemo() {
+  processData(DEMO_DATA);
+}
+
+function processData(data) {
+  // Normalize column names
+  allData = data.map(row => {
+    const r = {};
+    Object.keys(row).forEach(k => {
+      const lk = k.toLowerCase().trim();
+      // Property name: explicit 'property' col, or Outscraper's 'name' col
+      if (lk === 'property' || lk === 'place' || lk === 'location') r.property = row[k];
+      else if (lk === 'name' && !r.property) r.property = row[k];
+      // Date
+      if (lk.includes('date') || lk.includes('time') || lk.includes('datetime')) r.date = row[k];
+      // Rating — prefer review-level rating over aggregate
+      if (lk === 'review_rating' || lk === 'stars') r.rating = parseFloat(row[k]);
+      else if ((lk === 'rating' || lk === 'score') && !r.rating) r.rating = parseFloat(row[k]);
+      // Review text
+      if (lk.includes('review') && lk.includes('text')) r.review_text = row[k];
+      else if ((lk.includes('text') || lk.includes('body') || lk.includes('comment')) && !r.review_text) r.review_text = row[k];
+      // Author: Outscraper uses 'author_title', fallback to 'author'
+      if (lk === 'author_title' || lk === 'author' || lk === 'reviewer') r.author = row[k];
+    });
+    // fallback for demo data passed as-is
+    if (!r.property && row.property) r.property = row.property;
+    if (!r.date && row.date) r.date = row.date;
+    if (!r.rating && row.rating !== undefined) r.rating = parseFloat(row.rating);
+    if (!r.review_text && row.review_text) r.review_text = row.review_text;
+    if (!r.author && row.author) r.author = row.author;
+    return r;
+  }).filter(r => r.review_text && r.rating);
+
+  properties = [...new Set(allData.map(r => r.property).filter(Boolean))].sort();
+  if (properties.length === 0) properties = ['All Properties'];
+
+  document.getElementById('upload-zone').style.display = 'none';
+  showLoading();
+  analyzeWithClaude('ALL');
+}
+
+// ─── LOADING ──────────────────────────────────────────────────────────────────
+const loadingSteps = [
+  'Parsing review data...',
+  'Classifying sentiment...',
+  'Extracting themes...',
+  'Identifying opportunities...',
+  'Building your dashboard...'
+];
+
+function showLoading() {
+  document.getElementById('loading').style.display = 'block';
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < loadingSteps.length) {
+      document.getElementById('loading-step').textContent = loadingSteps[i++];
+    } else clearInterval(interval);
+  }, 700);
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ─── CLAUDE ANALYSIS ─────────────────────────────────────────────────────────
+async function analyzeWithClaude(propFilter) {
+  if (analysisCache[propFilter]) {
+    renderDashboard(analysisCache[propFilter], propFilter);
+    return;
+  }
+
+  const subset = propFilter === 'ALL' ? allData : allData.filter(r => r.property === propFilter);
+  const reviewsSummary = subset.slice(0, 80).map(r =>
+    `[${r.date || 'N/A'}] ${r.property || 'Property'} | ${r.rating}★ | ${r.review_text}`
+  ).join('\n');
+
+  const prompt = `You are an expert multifamily asset manager analyzing Google reviews for a residential portfolio. Analyze these reviews and return a JSON object ONLY (no markdown, no explanation).
+
+REVIEWS:
+${reviewsSummary}
+
+Return this exact JSON structure:
+{
+  "executive_summary": "2-3 sentence narrative about the overall story of this property/portfolio — what is happening, what's changed, what stands out",
+  "themes": [
+    {"name": "theme name (3-4 words)", "type": "positive|negative|neutral", "count": number, "insight": "1 sentence operational insight"}
+  ],
+  "opportunities": [
+    {"title": "short action title", "priority": "high|med|low", "description": "what to do and why it matters operationally", "icon": "emoji"}
+  ],
+  "trend_narrative": "2 sentences describing how sentiment has changed over time",
+  "top_positive": "the single biggest driver of positive reviews in 1 sentence",
+  "top_negative": "the single biggest driver of negative reviews and complaints in 1 sentence",
+  "response_tip": "one specific recommendation for how management should respond to reviews or communicate with residents"
+}
+
+Provide 5-8 themes, 4-6 opportunities. Be specific and actionable. Focus on patterns that matter for NOI, renewals, and operations.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const analysis = JSON.parse(clean);
+    analysisCache[propFilter] = analysis;
+    hideLoading();
+    renderDashboard(analysis, propFilter);
+  } catch (err) {
+    hideLoading();
+    renderDashboard(getFallbackAnalysis(), propFilter);
+  }
+}
+
+function getFallbackAnalysis() {
+  return {
+    executive_summary: "Upload your review data and connect to the AI for personalized insights. This demo shows the dashboard structure with sample data.",
+    themes: [
+      {name: "Maintenance Response", type: "positive", count: 18, insight: "Fast maintenance response is the top driver of 5-star reviews."},
+      {name: "Parking Issues", type: "negative", count: 12, insight: "Parking availability and enforcement are consistent pain points."},
+      {name: "Staff Friendliness", type: "positive", count: 15, insight: "Named staff members drive loyalty and lease renewals."},
+      {name: "Pest Control", type: "negative", count: 7, insight: "Recurring pest issues suggest vendor or structural root causes."},
+      {name: "Amenity Quality", type: "neutral", count: 9, insight: "Amenities praised initially but complaints increase about maintenance of gym/pool."},
+      {name: "Noise Complaints", type: "negative", count: 6, insight: "Thin walls and neighbor noise drive lease non-renewals on upper floors."}
+    ],
+    opportunities: [
+      {title: "Parking Policy Overhaul", priority: "high", description: "Implement a digital permit system and increase enforcement. Multiple reviews cite parking as a top frustration affecting renewal decisions.", icon: "🚗"},
+      {title: "Pest Control Protocol", priority: "high", description: "Switch to a quarterly preventive program rather than reactive service. Recurring pest mentions damage your brand disproportionately.", icon: "🐛"},
+      {title: "Amenity Maintenance SLA", priority: "med", description: "Create a public-facing SLA for gym/pool repairs. Broken equipment mentioned in 8% of reviews — set a 48hr fix standard.", icon: "🏋️"},
+      {title: "Recognize Top Staff Publicly", priority: "low", description: "Staff named in positive reviews (Jessica, Mike, etc.) drive loyalty. Incentivize personalized service with a formal recognition program.", icon: "⭐"}
+    ],
+    trend_narrative: "Sentiment shows improvement over the past two quarters. Recent maintenance upgrades and new management at Riverside Commons have driven measurable score increases.",
+    top_positive: "Fast, friendly maintenance response is the single largest driver of 5-star reviews across the portfolio.",
+    top_negative: "Parking conflicts and pest/mold issues are the top sources of 1-2 star reviews and are directly tied to lease non-renewals.",
+    response_tip: "Respond publicly to all 1-2 star reviews within 48 hours. Acknowledge the issue, name a direct contact. This alone improves perception scores in follow-up surveys."
+  };
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function renderDashboard(analysis, propFilter) {
+  const subset = propFilter === 'ALL' ? allData : allData.filter(r => r.property === propFilter);
+
+  // Build property tabs
+  const bar = document.getElementById('property-bar');
+  bar.style.display = 'flex';
+  const tabs = ['ALL', ...properties];
+  bar.innerHTML = tabs.map(p =>
+    `<div class="prop-tab ${p === propFilter ? 'active' : ''}" onclick="switchProperty('${p}')">${p === 'ALL' ? '📊 All Properties' : p}</div>`
+  ).join('');
+
+  // Stats
+  const avgRating = (subset.reduce((s, r) => s + r.rating, 0) / subset.length).toFixed(2);
+  const totalReviews = subset.length;
+  const fiveStar = subset.filter(r => r.rating === 5).length;
+  const oneTwoStar = subset.filter(r => r.rating <= 2).length;
+  const pctPositive = Math.round((fiveStar / totalReviews) * 100);
+  const pctNegative = Math.round((oneTwoStar / totalReviews) * 100);
+
+  // Monthly data
+  const byMonth = {};
+  subset.forEach(r => {
+    if (!r.date) return;
+    const d = new Date(r.date);
+    if (isNaN(d)) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byMonth[key]) byMonth[key] = { sum: 0, count: 0, positive: 0, negative: 0 };
+    byMonth[key].sum += r.rating;
+    byMonth[key].count++;
+    if (r.rating >= 4) byMonth[key].positive++;
+    if (r.rating <= 2) byMonth[key].negative++;
+  });
+  const months = Object.keys(byMonth).sort();
+  const monthlyAvg = months.map(m => (byMonth[m].sum / byMonth[m].count).toFixed(2));
+  const monthlyCount = months.map(m => byMonth[m].count);
+
+  // Rating distribution
+  const dist = [1,2,3,4,5].map(s => subset.filter(r => r.rating === s).length);
+
+  // Sample reviews (most recent, mix of ratings)
+  const sorted = [...subset].sort((a,b) => new Date(b.date) - new Date(a.date));
+  const sampleReviews = [
+    ...sorted.filter(r => r.rating >= 4).slice(0,2),
+    ...sorted.filter(r => r.rating <= 2).slice(0,2),
+    ...sorted.filter(r => r.rating === 3).slice(0,1)
+  ].filter(Boolean);
+
+  // ── Portfolio scorecard (ALL view only) ──────────────────────────────────
+  let scorecardHTML = '';
+  if (propFilter === 'ALL') {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const lastMonth = (() => { const d = new Date(now.getFullYear(), now.getMonth()-1, 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
+    const twoMonthsAgo = (() => { const d = new Date(now.getFullYear(), now.getMonth()-2, 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
+
+    const propCards = properties.map(prop => {
+      const pReviews = allData.filter(r => r.property === prop);
+      const pAvg = pReviews.length ? (pReviews.reduce((s,r) => s+r.rating,0)/pReviews.length) : 0;
+      const pFive = pReviews.filter(r => r.rating === 5).length;
+      const pFour = pReviews.filter(r => r.rating === 4).length;
+      const pThree = pReviews.filter(r => r.rating === 3).length;
+      const pTwo = pReviews.filter(r => r.rating === 2).length;
+      const pOne = pReviews.filter(r => r.rating === 1).length;
+      const total = pReviews.length;
+
+      // MoM: compare most recent full month vs prior month
+      const getMonthAvg = (monthKey) => {
+        const mrs = pReviews.filter(r => {
+          if (!r.date) return false;
+          const d = new Date(r.date);
+          if (isNaN(d)) return false;
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === monthKey;
+        });
+        return mrs.length ? mrs.reduce((s,r)=>s+r.rating,0)/mrs.length : null;
+      };
+
+      // Find the two most recent months that have data
+      const allMonthKeys = [...new Set(pReviews.map(r => {
+        if (!r.date) return null;
+        const d = new Date(r.date);
+        if (isNaN(d)) return null;
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      }).filter(Boolean))].sort().reverse();
+
+      const recentAvg = allMonthKeys[0] ? getMonthAvg(allMonthKeys[0]) : null;
+      const prevAvg = allMonthKeys[1] ? getMonthAvg(allMonthKeys[1]) : null;
+      const momDiff = (recentAvg !== null && prevAvg !== null) ? (recentAvg - prevAvg) : null;
+
+      let trendClass = 'trend-flat';
+      let deltaHTML = '<span class="scorecard-delta flat">— No change</span>';
+      if (momDiff !== null && Math.abs(momDiff) >= 0.05) {
+        if (momDiff > 0) {
+          trendClass = 'trend-up';
+          deltaHTML = `<span class="scorecard-delta up">↑ +${momDiff.toFixed(2)} MoM</span>`;
+        } else {
+          trendClass = 'trend-down';
+          deltaHTML = `<span class="scorecard-delta down">↓ ${momDiff.toFixed(2)} MoM</span>`;
+        }
+      }
+
+      // Star distribution bar
+      const barSegs = [
+        { pct: total ? (pFive/total*100) : 0, color: 'var(--forest)' },
+        { pct: total ? (pFour/total*100) : 0, color: '#7cbb8a' },
+        { pct: total ? (pThree/total*100) : 0, color: 'var(--gold)' },
+        { pct: total ? (pTwo/total*100) : 0, color: '#e8956b' },
+        { pct: total ? (pOne/total*100) : 0, color: 'var(--rust)' },
+      ];
+      const barHTML = barSegs.map(s => `<div class="scorecard-bar-seg" style="width:${s.pct}%;background:${s.color};"></div>`).join('');
+
+      const pctFive = total ? Math.round(pFive/total*100) : 0;
+      const pctNeg = total ? Math.round((pOne+pTwo)/total*100) : 0;
+      const starsDisplay = '★'.repeat(Math.round(pAvg)) + '☆'.repeat(5-Math.round(pAvg));
+
+      return `
+        <div class="scorecard-card ${trendClass}" onclick="switchProperty('${prop.replace(/'/g,"\'")}')">
+          <div class="scorecard-prop-name">${prop}</div>
+          <div class="scorecard-rating-row">
+            <div class="scorecard-rating">${pAvg.toFixed(1)}</div>
+            <div class="scorecard-stars">${starsDisplay}</div>
+            ${deltaHTML}
+          </div>
+          <div class="scorecard-bar-row">${barHTML}</div>
+          <div class="scorecard-meta">
+            <div class="scorecard-meta-item"><strong>${total}</strong> reviews</div>
+            <div class="scorecard-meta-item"><strong style="color:var(--forest)">${pctFive}%</strong> 5-star</div>
+            <div class="scorecard-meta-item"><strong style="color:var(--rust)">${pctNeg}%</strong> 1–2 star</div>
+            <div class="scorecard-meta-item" style="margin-left:auto;font-size:0.68rem;color:var(--muted);">Click to drill in →</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const reportMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    scorecardHTML = `
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Portfolio Scorecard</div>
+          <div class="section-meta">Click any property to drill in</div>
+        </div>
+        <div class="month-badge">${reportMonth} Report</div>
+        <div class="scorecard-grid">${propCards}</div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin-bottom:28px;">
+    `;
+  }
+
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block';
+
+  dash.innerHTML = scorecardHTML + `
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Avg Rating</div>
+        <div class="stat-value">${avgRating} <span style="font-size:1rem;color:var(--gold)">★</span></div>
+        <div class="stat-delta">${pctPositive}% 4–5 star reviews</div>
+      </div>
+      <div class="stat-card positive">
+        <div class="stat-label">Total Reviews</div>
+        <div class="stat-value">${totalReviews}</div>
+        <div class="stat-delta">${propFilter === 'ALL' ? properties.length + ' properties' : 'this property'}</div>
+      </div>
+      <div class="stat-card positive">
+        <div class="stat-label">5-Star Reviews</div>
+        <div class="stat-value">${fiveStar}</div>
+        <div class="stat-delta delta-up">↑ ${pctPositive}% of total</div>
+      </div>
+      <div class="stat-card negative">
+        <div class="stat-label">1–2 Star Reviews</div>
+        <div class="stat-value">${oneTwoStar}</div>
+        <div class="stat-delta delta-down">↓ ${pctNegative}% need attention</div>
+      </div>
+    </div>
+
+    <!-- AI INSIGHT -->
+    <div class="insight-box">
+      <div class="insight-label">AI Executive Summary</div>
+      <div class="insight-text">${analysis.executive_summary}</div>
+      <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div>
+          <div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">Top Positive Driver</div>
+          <div style="font-size:0.82rem;color:#d4d0c8;line-height:1.5;">${analysis.top_positive}</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--rust);margin-bottom:6px;">Top Negative Driver</div>
+          <div style="font-size:0.82rem;color:#d4d0c8;line-height:1.5;">${analysis.top_negative}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="section">
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-title">Average Rating by Month</div>
+          <canvas id="trendChart" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Review Volume & Distribution</div>
+          <canvas id="distChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- THEMES -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Review Themes</div>
+        <div class="section-meta">AI-extracted from review text</div>
+      </div>
+      <div class="theme-grid">
+        ${analysis.themes.map(t => `
+          <div class="theme-pill ${t.type}" title="${t.insight}">
+            ${t.type === 'positive' ? '✓' : t.type === 'negative' ? '✗' : '○'} ${t.name}
+            <span class="pill-count">${t.count}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:16px; display:flex; flex-wrap:wrap; gap:10px;">
+        ${analysis.themes.map(t => `
+          <div style="flex:1;min-width:240px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 16px;">
+            <div style="font-size:0.75rem;font-weight:600;margin-bottom:4px;">${t.name}</div>
+            <div style="font-size:0.78rem;color:var(--muted);line-height:1.5;">${t.insight}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- OPPORTUNITIES -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Operational Opportunities</div>
+        <div class="section-meta">Prioritized by impact on NOI & renewals</div>
+      </div>
+      <div class="opp-list">
+        ${analysis.opportunities.map(o => `
+          <div class="opp-item">
+            <div class="opp-icon ${o.priority}">${o.icon}</div>
+            <div>
+              <div class="opp-title">${o.title}</div>
+              <div class="opp-desc">${o.description}</div>
+            </div>
+            <span class="opp-badge ${o.priority}">${o.priority}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- RESPONSE TIP -->
+    <div style="background:var(--gold-light);border:1.5px solid var(--gold);border-radius:6px;padding:20px 24px;margin-bottom:28px;">
+      <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8a6a1a;margin-bottom:8px;">💬 Response Strategy</div>
+      <div style="font-size:0.88rem;line-height:1.6;color:#4a3a0a;">${analysis.response_tip}</div>
+    </div>
+
+    <!-- TREND NARRATIVE -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:20px 24px;margin-bottom:28px;">
+      <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📈 Trend Analysis</div>
+      <div style="font-size:0.88rem;line-height:1.6;">${analysis.trend_narrative}</div>
+    </div>
+
+    <!-- SAMPLE REVIEWS -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recent Reviews</div>
+        <div class="section-meta">Sample across rating spectrum</div>
+      </div>
+      <div class="review-list">
+        ${sampleReviews.map(r => `
+          <div class="review-card r${Math.round(r.rating)}">
+            <div class="review-meta">
+              <span class="stars">${'★'.repeat(Math.round(r.rating))}${'☆'.repeat(5-Math.round(r.rating))}</span>
+              <span class="review-author">${r.author || 'Anonymous'}</span>
+              <span class="review-date">${r.date || ''}</span>
+              ${r.property && propFilter === 'ALL' ? `<span style="font-size:0.72rem;background:var(--cream);padding:2px 8px;border-radius:10px;color:var(--muted);">${r.property}</span>` : ''}
+            </div>
+            <div class="review-body">${r.review_text}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Render charts
+  setTimeout(() => {
+    // Trend chart
+    const tCtx = document.getElementById('trendChart');
+    if (tCtx && months.length > 0) {
+      new Chart(tCtx, {
+        type: 'line',
+        data: {
+          labels: months.map(m => {
+            const [y, mo] = m.split('-');
+            return new Date(y, mo-1).toLocaleString('default',{month:'short', year:'2-digit'});
+          }),
+          datasets: [{
+            label: 'Avg Rating',
+            data: monthlyAvg,
+            borderColor: '#c9a84c',
+            backgroundColor: 'rgba(201,168,76,0.08)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#c9a84c',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 1, max: 5, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // Distribution chart
+    const dCtx = document.getElementById('distChart');
+    if (dCtx) {
+      new Chart(dCtx, {
+        type: 'bar',
+        data: {
+          labels: ['1★', '2★', '3★', '4★', '5★'],
+          datasets: [{
+            data: dist,
+            backgroundColor: ['#c2522b','#e8956b','#c9a84c','#7cbb8a','#2d5a3d'],
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+  }, 100);
+}
+
+function switchProperty(prop) {
+  activeProperty = prop;
+  document.querySelectorAll('.prop-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.replace('📊 All Properties','ALL').trim() === prop || (prop === 'ALL' && t.textContent.includes('All Properties')));
+  });
+  // Clear dashboard and re-analyze
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading-step').textContent = 'Analyzing ' + (prop === 'ALL' ? 'all properties' : prop) + '...';
+  setTimeout(() => analyzeWithClaude(prop), 100);
+}
+
+// ─── DRAG & DROP ─────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--gold)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = '';
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+</script>
+</body>
+</html>
