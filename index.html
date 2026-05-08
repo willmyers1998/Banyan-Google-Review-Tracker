@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banyan Residential — Resident Reviews Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --ink: #0f0e0d; --paper: #f7f4ef; --cream: #ede9e1;
+    --gold: #c9a84c; --gold-light: #f0e6c8; --rust: #c2522b;
+    --forest: #2d5a3d; --muted: #7a7468; --border: #d4cfc6; --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+  header { background: var(--ink); color: var(--paper); padding: 24px 48px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--gold); }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; letter-spacing: -0.02em; }
+  header .subtitle { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
+  .header-right { text-align: right; }
+  .report-badge { background: var(--gold); color: var(--ink); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 12px; border-radius: 2px; display: inline-block; margin-bottom: 4px; }
+  .header-count { font-size: 0.72rem; color: var(--muted); }
+
+  /* TABS */
+  #property-bar { background: var(--ink); padding: 0 48px; display: flex; overflow-x: auto; border-bottom: 1px solid #2a2a2a; }
+  .prop-tab { color: var(--muted); font-size: 0.78rem; font-weight: 500; padding: 14px 18px; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s; }
+  .prop-tab:hover { color: var(--paper); }
+  .prop-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* DASHBOARD */
+  #dashboard { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  /* SCORECARD */
+  .scorecard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .scorecard-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; cursor: pointer; transition: box-shadow 0.2s, transform 0.15s; position: relative; overflow: hidden; }
+  .scorecard-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .scorecard-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .scorecard-card.trend-up::before { background: var(--forest); }
+  .scorecard-card.trend-down::before { background: var(--rust); }
+  .scorecard-card.trend-flat::before { background: var(--gold); }
+  .sc-name { font-size: 0.78rem; font-weight: 600; margin-bottom: 10px; color: var(--ink); }
+  .sc-rating-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .sc-rating { font-family: 'DM Serif Display', serif; font-size: 2rem; line-height: 1; }
+  .sc-stars { color: var(--gold); font-size: 0.8rem; }
+  .sc-delta { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: auto; flex-shrink: 0; }
+  .sc-delta.up { background: #e8f4ec; color: var(--forest); }
+  .sc-delta.down { background: #faeee9; color: var(--rust); }
+  .sc-delta.flat { background: var(--gold-light); color: #8a6a1a; }
+  .sc-bar { display: flex; gap: 2px; height: 5px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .sc-bar-seg { height: 100%; }
+  .sc-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .sc-meta-item { font-size: 0.68rem; color: var(--muted); }
+  .sc-meta-item strong { color: var(--ink); font-weight: 600; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border-radius: 6px; padding: 20px 22px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--gold); }
+  .stat-card.pos::before { background: var(--forest); }
+  .stat-card.neg::before { background: var(--rust); }
+  .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 1.9rem; line-height: 1; }
+  .stat-sub { font-size: 0.75rem; margin-top: 5px; color: var(--muted); }
+  .delta-up { color: var(--forest); font-weight: 600; }
+  .delta-down { color: var(--rust); font-weight: 600; }
+
+  /* INSIGHT BOX */
+  .insight-box { background: var(--ink); color: var(--paper); border-radius: 6px; padding: 26px 30px; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .insight-box::after { content: '"'; font-family: 'DM Serif Display', serif; font-size: 9rem; color: rgba(201,168,76,0.1); position: absolute; top: -15px; right: 16px; line-height: 1; }
+  .insight-label { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; font-weight: 700; }
+  .insight-text { font-size: 0.9rem; line-height: 1.7; color: #e8e4dc; }
+  .insight-drivers { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .driver-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+  .driver-pos { color: var(--gold); }
+  .driver-neg { color: var(--rust); }
+  .driver-text { font-size: 0.8rem; color: #d4d0c8; line-height: 1.5; }
+
+  /* TWO COL */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .section { margin-bottom: 28px; }
+  .section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 1.15rem; }
+  .section-meta { font-size: 0.75rem; color: var(--muted); }
+
+  /* CHARTS */
+  .chart-card { background: var(--card); border-radius: 6px; padding: 20px; border: 1px solid var(--border); }
+  .chart-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
+
+  /* THEMES */
+  .theme-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .theme-pill { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 500; border: 1.5px solid transparent; }
+  .theme-pill.positive { background: #e8f4ec; color: var(--forest); border-color: #b8d8c2; }
+  .theme-pill.negative { background: #faeee9; color: var(--rust); border-color: #e8c4b8; }
+  .theme-pill.neutral { background: var(--cream); color: var(--muted); border-color: var(--border); }
+  .pill-count { background: rgba(0,0,0,0.08); border-radius: 10px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; }
+  .theme-insights { display: flex; flex-wrap: wrap; gap: 8px; }
+  .theme-insight-card { flex: 1; min-width: 200px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
+  .ti-name { font-size: 0.72rem; font-weight: 600; margin-bottom: 3px; }
+  .ti-text { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+
+  /* OPPORTUNITIES */
+  .opp-list { display: flex; flex-direction: column; gap: 8px; }
+  .opp-item { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 14px; }
+  .opp-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
+  .opp-icon.high { background: #faeee9; }
+  .opp-icon.med { background: var(--gold-light); }
+  .opp-icon.low { background: #e8f4ec; }
+  .opp-body { flex: 1; }
+  .opp-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 3px; }
+  .opp-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .opp-badge { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 2px; flex-shrink: 0; margin-top: 2px; }
+  .opp-badge.high { background: #faeee9; color: var(--rust); }
+  .opp-badge.med { background: var(--gold-light); color: #8a6a1a; }
+  .opp-badge.low { background: #e8f4ec; color: var(--forest); }
+
+  /* REVIEWS */
+  .review-list { display: flex; flex-direction: column; gap: 10px; }
+  .review-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; border-left: 4px solid var(--border); }
+  .review-card.r5 { border-left-color: var(--forest); }
+  .review-card.r4 { border-left-color: #7cbb8a; }
+  .review-card.r3 { border-left-color: var(--gold); }
+  .review-card.r2 { border-left-color: #e8956b; }
+  .review-card.r1 { border-left-color: var(--rust); }
+  .review-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .stars { color: var(--gold); font-size: 0.82rem; }
+  .review-author { font-size: 0.75rem; font-weight: 600; }
+  .review-date { font-size: 0.72rem; color: var(--muted); }
+  .review-body { font-size: 0.82rem; line-height: 1.6; color: #3a3733; }
+
+  /* TIP BOX */
+  .tip-box { background: var(--gold-light); border: 1.5px solid var(--gold); border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+  .tip-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8a6a1a; margin-bottom: 6px; }
+  .tip-text { font-size: 0.84rem; line-height: 1.6; color: #4a3a0a; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin-bottom: 24px; }
+  .month-badge { background: var(--ink); color: var(--gold); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; display: inline-block; margin-bottom: 16px; }
+
+  @media (max-width: 768px) {
+    header { padding: 18px; }
+    #property-bar { padding: 0 12px; }
+    #dashboard { padding: 20px 14px 40px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .insight-drivers { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Resident Reviews Intelligence</h1>
+    <div class="subtitle">Banyan Residential · Asset Management</div>
+  </div>
+  <div class="header-right">
+    <div class="report-badge" id="reportBadge">May 2026 Report</div>
+    <div class="header-count" id="headerCount"></div>
+  </div>
+</header>
+
+<div id="property-bar"></div>
+<div id="dashboard"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const BANYAN_DATA = {
+  reportMonth: 'May 2026',
+  totalReviews: 1031,
+  properties: ["Archive Apartments", "Banyan Brighton", "Banyan Everton Single Family Homes", "Banyan Flats", "Banyan Silo Ridge Townhomes & Cottages", "Banyan at 17 North", "Banyan at South Mountain", "Banyan on Washington", "Northbend Apartments", "Scottsdale Entrada Apartments"],
+  portMonths: ["2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"],
+  portAvgs: [3.67, 5.0, 4.4, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 4.33, 4.8, 4.43, 4.83, 5.0, 5.0, 5.0, 5.0, 2.92, 3.6, 3.43, 4.11, 4.2, 3.22, 4.21, 3.73, 4.07, 3.36, 4.65, 4.23, 4.12, 4.22, 4.02, 4.05, 4.71, 4.48, 4.82, 4.6, 3.84, 4.51, 4.74, 4.06, 4.12, 4.11, 4.05, 4.38, 4.42, 3.56, 4.34, 4.47],
+  portCounts: [3, 2, 5, 4, 4, 2, 5, 4, 4, 3, 5, 7, 6, 5, 3, 7, 4, 12, 10, 7, 18, 15, 18, 29, 15, 30, 22, 23, 47, 32, 45, 47, 43, 41, 33, 34, 72, 37, 45, 47, 17, 26, 18, 20, 26, 33, 25, 56, 15],
+  props: {
+    "Archive Apartments": {
+      avg: 4.15,
+      total: 226,
+      five: 169, four: 6, three: 5, two: 8, one: 38,
+      mom: -0.05,
+      monthlyLabels: ["2023-08", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"],
+      monthlyAvgs: [5.0, 2.4, 3.0, 2.5, 4.38, 3.6, 3.0, 4.5, 1.0, 5.0, 3.17, 1.0, 4.26, 3.0, 4.0, 3.0, 3.79, 4.43, 4.33, 4.2, 2.33, 3.83, 4.5, 5.0, 4.5, 4.86, 2.67, 5.0, 4.43, 5.0, 2.0, 4.68, 4.64],
+      monthlyCounts: [3, 5, 4, 2, 13, 5, 2, 16, 1, 10, 6, 1, 19, 6, 7, 2, 19, 7, 3, 5, 3, 6, 6, 5, 4, 7, 3, 2, 14, 6, 1, 22, 11],
+      summary: "Archive Apartments shows a strong 4.15 average across 226 reviews, driven by standout maintenance staff \u2014 particularly Zack and Selena who are named repeatedly in 5-star reviews. However, 20% of reviews are 1-2 stars, with recurring complaints around pest issues (roaches), approval process transparency, and water quality on move-in.",
+      topPositive: "Named maintenance staff (Zack) and leasing team (Selena) are the single biggest driver of 5-star reviews \u2014 residents feel genuinely cared for.",
+      topNegative: "Pest issues on move-in and lack of communication during the application process are the top 1-2 star drivers.",
+      themes: [{"name": "Maintenance Staff Excellence", "type": "positive", "count": 42, "insight": "Zack and the maintenance team are mentioned by name in dozens of 5-star reviews \u2014 a retention asset."}, {"name": "Pest Issues on Move-In", "type": "negative", "count": 18, "insight": "Roach and pest complaints cluster around move-in \u2014 a pre-treatment protocol could eliminate these reviews."}, {"name": "Leasing Team Warmth", "type": "positive", "count": 31, "insight": "Selena and front office praised for professionalism and warmth \u2014 strong leasing conversion driver."}, {"name": "Application Transparency", "type": "negative", "count": 12, "insight": "Residents denied without clear criteria \u2014 publishing approval requirements would reduce frustration."}, {"name": "Location & Convenience", "type": "positive", "count": 24, "insight": "Downtown proximity consistently praised as a top lifestyle benefit."}, {"name": "Water Quality Complaints", "type": "negative", "count": 9, "insight": "Water smell and quality flagged on move-in \u2014 worth investigating with building systems."}],
+      opportunities: [{"title": "Pre-Move-In Pest Treatment", "priority": "high", "description": "Implement mandatory pest treatment 48hrs before every move-in. Pest complaints on day 1 generate your worst reviews and are entirely preventable.", "icon": "\ud83d\udc1b"}, {"title": "Publish Approval Criteria", "priority": "high", "description": "Multiple 1-star reviews cite being denied with no explanation. A simple FAQ on income/credit requirements eliminates this frustration.", "icon": "\ud83d\udccb"}, {"title": "Recognize Zack & Selena", "priority": "med", "description": "Both staff members are named in 40+ reviews. Formal recognition and incentives will retain these NOI-driving team members.", "icon": "\u2b50"}],
+      responseTip: "Respond to all 1-2 star reviews within 48 hours referencing the specific issue. Reviewers who mention pest or water issues should be offered direct outreach from the property manager.",
+      samples: [{"property": "Archive Apartments", "author": "G Gallow", "date": "05/07/2026", "rating": 5.0, "text": "I have to give a huge thank you to Selena at our apartment community! From the moment you walk into the office, she greets everyone with professionalism, kindness, and a smile that can brighten your whole day. She\u2019s always pleasant, patient, and genuinely cares about helping residents.  What really stands out is her positive energy and sense of humor \u2014 every conversation leaves you laughing and fe"}, {"property": "Archive Apartments", "author": "Sandra Figueroa", "date": "05/04/2026", "rating": 5.0, "text": "Best apartments in Dallas especially the maintenance lead Zack he\u2019s always super helpful with needing help around the property when i arrive happy to have Archive as my mail route!!!! The entire staff is very nice helpful."}, {"property": "Archive Apartments", "author": "Dianne Moore", "date": "05/04/2026", "rating": 5.0, "text": "I love these apartments, so convenient to downtown and they really care about their residents. Their lead maintenance,  Zac is the best. When you need something he is there to help."}, {"property": "Archive Apartments", "author": "Darrius Waymon", "date": "05/02/2026", "rating": 1.0, "text": "I recently applied to this apartment. The apartment didn't provide me with any info regarding criteria for getting approved for this complex. I was told everything was good except my credit and so I was denied. I make over 3X the rent for this complex and have clear rental history. When I inquired further I was told the information is provided and it's shown on the website. After reviewing the web"}, {"property": "Archive Apartments", "author": "Idella Saunders", "date": "04/23/2026", "rating": 2.0, "text": "I love my unit and the sunlight that\u2019s gets into my apartment. It was also brand new so I\u2019m the first person living here. 1000 bonus points for that. There are always parking spots available. The spots are also big, I have a wide body car so that\u2019s important. Neighbors do blast music at all times of the night, but that\u2019s expected. Trash area is always filthy because people have no type of home tra"}, {"property": "Archive Apartments", "author": "Tykian J", "date": "04/15/2026", "rating": 1.0, "text": "Just moved in already experiencing pest issues roaches and water smell. Not a good experience only moved in two days ago. I\u2019m just put on a list who wants roaches with their clothes and this suppose to be a \u201cnew building\u201d"}, {"property": "Archive Apartments", "author": "Josh Kallmeyer", "date": "09/23/2025", "rating": 3.0, "text": "Listen I lived here for about 9 months. Great onboarding experience. Helped me secure my first apartment in the US (I moved from abroad). Management changed a few months into my lease. It was fine.  Premises was mostly kept clean. Don't park near the trash because it just stinks down there. The staff, at first, were lovely. The cleaning crew, maintenance staff - AMAZING.  Support turnaround times "}],
+    },
+    "Banyan Brighton": {
+      avg: 4.51,
+      total: 86,
+      five: 70, four: 6, three: 2, two: 0, one: 8,
+      mom: -0.33,
+      monthlyLabels: ["2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-09", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2025-01", "2025-02", "2025-04", "2025-05", "2025-06", "2025-07", "2025-10", "2025-11", "2025-12", "2026-02", "2026-03", "2026-04"],
+      monthlyAvgs: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 3.0, 5.0, 3.0, 2.0, 4.5, 5.0, 4.0, 5.0, 5.0, 4.33, 5.0, 4.67, 3.67, 5.0, 5.0, 3.0, 5.0, 3.86, 5.0, 3.0, 5.0, 5.0, 4.67],
+      monthlyCounts: [1, 3, 4, 2, 3, 3, 2, 5, 1, 1, 1, 2, 1, 2, 3, 2, 2, 2, 4, 1, 3, 1, 3, 3, 4, 4, 1, 5, 7, 1, 2, 1, 3, 3],
+      summary: "Banyan Brighton is a strong performer at 4.51 average with 81% 5-star reviews, but showed a -0.33 MoM dip this period. The property benefits from a beautiful community aesthetic and responsive team, but parking issues are an unresolved recurring theme appearing across multiple review periods.",
+      topPositive: "Community aesthetics and responsive, professional leasing staff drive the majority of 5-star reviews.",
+      topNegative: "Parking availability is the single most cited issue, mentioned in both current and historical negative reviews.",
+      themes: [{"name": "Community Aesthetics", "type": "positive", "count": 28, "insight": "Beautiful homes and well-kept grounds are consistently praised \u2014 a strong marketing asset."}, {"name": "Parking Shortage", "type": "negative", "count": 14, "insight": "Parking is the #1 complaint and has persisted across multiple years of reviews \u2014 needs structural resolution."}, {"name": "Staff Responsiveness", "type": "positive", "count": 22, "insight": "Quick response times praised across leasing and maintenance \u2014 maintain this standard."}, {"name": "Management Consistency", "type": "negative", "count": 8, "insight": "Some reviews note management quality has varied \u2014 new resident onboarding should be standardized."}],
+      opportunities: [{"title": "Parking Structural Fix", "priority": "high", "description": "Parking appears in nearly every negative review going back years. A permit audit or guest parking policy needs immediate attention before it becomes a renewal issue.", "icon": "\ud83d\ude97"}, {"title": "MoM Recovery Plan", "priority": "high", "description": "Rating dipped -0.33 this month. Identify the reviews driving the drop and reach out personally to those residents within 30 days.", "icon": "\ud83d\udcc9"}, {"title": "Standardize Onboarding", "priority": "med", "description": "Create a consistent move-in checklist and 30-day follow-up call to catch issues before they become reviews.", "icon": "\ud83d\udccb"}],
+      responseTip: "Given the MoM dip, prioritize responding to all recent negative reviews with a direct manager contact name and specific resolution offered.",
+      samples: [{"property": "Banyan Brighton", "author": "Jason Dunlap", "date": "04/26/2026", "rating": 5.0, "text": "beautiful community."}, {"property": "Banyan Brighton", "author": "stephen hall", "date": "04/24/2026", "rating": 5.0, "text": "The issue was resolved within a few hours; it exceeded my expectations."}, {"property": "Banyan Brighton", "author": "Lashun Moffitt", "date": "03/22/2026", "rating": 5.0, "text": "Very nice community, representative was very helpful and pleasant.  Thanks for assisting me"}, {"property": "Banyan Brighton", "author": "Parker Fitzgerald", "date": "12/31/2025", "rating": 1.0, "text": "This apartment complex and management treated my friend Chris and his family TERRIBLY! PLEASE DO NOT MOVE HERE!"}, {"property": "Banyan Brighton", "author": "Rob Guy", "date": "10/25/2025", "rating": 1.0, "text": "10/25/2025 It's been almost six months since my last update review. Sadly, not much has changed and in my opinion it worse. Don't believe the posts that say parking has never been an issue. There are currently over 20 units available with lots of incentives for moving in, yet there is still no parking. Parking rules are pretty simple and straightforward. I will list them below as I understand them"}, {"property": "Banyan Brighton", "author": "Jennie Guy", "date": "10/21/2025", "rating": 1.0, "text": "After living here for 2 years the property remains beautiful, the parking issues have never been resolved."}, {"property": "Banyan Brighton", "author": "Aaliyah Mcdonald", "date": "06/06/2025", "rating": 3.0, "text": "The inside of these townhomes are beautiful and the neighborhood is nice . The office staff I give a 4/10 always giving wrong information and   they don\u2019t take accountability when they\u2019re wrong . It took us two weeks to get keys to our mailbox and it seemed unorganized because when we asked questions we got two different answers .  And we were double charged for things and the manager refused to m"}],
+    },
+    "Banyan Everton Single Family Homes": {
+      avg: 4.88,
+      total: 90,
+      five: 85, four: 3, three: 0, two: 0, one: 2,
+      mom: 0.0,
+      monthlyLabels: ["2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"],
+      monthlyAvgs: [5.0, 5.0, 5.0, 5.0, 4.8, 5.0, 5.0, 4.75, 5.0, 5.0, 4.75, 5.0, 5.0, 5.0, 3.67, 5.0, 5.0, 5.0, 3.67, 5.0, 5.0],
+      monthlyCounts: [1, 5, 3, 1, 5, 11, 6, 4, 4, 3, 4, 23, 3, 1, 3, 2, 2, 3, 3, 2, 1],
+      summary: "Banyan Everton is the portfolio's top performer at 4.88 average with 94% 5-star reviews across 90 reviews. Staff members Crystal, Chris, Ben, and Jimena are repeatedly named. This is a model property \u2014 the practices here should be studied and replicated across the portfolio.",
+      topPositive: "Exceptional named staff (Crystal, Chris, Ben, Jimena) and fast maintenance response are driving near-perfect scores.",
+      topNegative: "Very limited negative feedback \u2014 front desk service inconsistency is the only recurring minor complaint.",
+      themes: [{"name": "Star Staff Performance", "type": "positive", "count": 38, "insight": "Four team members named across reviews \u2014 this level of personalization is rare and drives loyalty."}, {"name": "Maintenance Speed", "type": "positive", "count": 22, "insight": "Same-day repairs mentioned multiple times \u2014 sets the standard for the portfolio."}, {"name": "Beautiful Homes", "type": "positive", "count": 19, "insight": "Product quality praised consistently \u2014 strong justification for premium pricing."}, {"name": "Front Desk Inconsistency", "type": "negative", "count": 4, "insight": "Rare but notable \u2014 one bad interaction stands out more at a high-performing property."}],
+      opportunities: [{"title": "Document the Everton Playbook", "priority": "high", "description": "This property's staff culture and processes should be documented and used as a training template for underperforming properties.", "icon": "\ud83d\udcd6"}, {"title": "Leverage Reviews in Marketing", "priority": "med", "description": "94% 5-star rate is exceptional \u2014 use specific named-staff reviews in leasing materials and social media.", "icon": "\ud83d\udce3"}],
+      responseTip: "Continue publicly thanking residents who name staff members \u2014 it reinforces the culture and encourages others to do the same.",
+      samples: [{"property": "Banyan Everton Single Family Homes", "author": "Jhanelle Prince-Swan", "date": "05/07/2026", "rating": 5.0, "text": "My family and I have visited about 3x and it\u2019s always been a wonderful experience. Homes are beautiful and the office staff (Crystal, Chris and Jimena are very nice, inviting and wonderful to work with. (please forgive me if I spelt incorrectly))."}, {"property": "Banyan Everton Single Family Homes", "author": "Rocio Acosta", "date": "04/27/2026", "rating": 5.0, "text": "Fixed my gate lock so quick I didn\u2019t even realize they did it!"}, {"property": "Banyan Everton Single Family Homes", "author": "Linda Thornton", "date": "04/22/2026", "rating": 5.0, "text": "Great place to see, lovely home. Ben was great, answered all of my questions. Look for Ben he is great."}, {"property": "Banyan Everton Single Family Homes", "author": "E Andrade", "date": "03/05/2026", "rating": 1.0, "text": "One of the worst places to live . This community sells you on how nice everything is but the problems quickly become intolerable. I moved out on October to this day I\u2019m being billed for utilities that they stated were going to be transferred once I moved . The pool is dirty and anyone can get in. The homes are always being fixed there are no pet stations . Tons of bugs spiders and ants that they s"}, {"property": "Banyan Everton Single Family Homes", "author": "Apollo", "date": "11/05/2025", "rating": 1.0, "text": "Just a disguisting front desk service, misrepresenting information and clueless about what the reps are saying."}],
+    },
+    "Banyan Flats": {
+      avg: 4.0,
+      total: 169,
+      five: 122, four: 4, three: 1, two: 5, one: 37,
+      mom: -3.2,
+      monthlyLabels: ["2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"],
+      monthlyAvgs: [5.0, 5.0, 2.6, 3.67, 3.33, 1.0, 3.67, 2.0, 2.75, 5.0, 4.58, 4.43, 5.0, 5.0, 5.0, 3.5, 3.67, 4.38, 2.6, 3.0, 4.0, 4.4, 3.67, 4.2, 4.7, 2.33, 4.2, 1.0],
+      monthlyCounts: [1, 4, 5, 3, 6, 2, 3, 5, 4, 12, 12, 7, 13, 4, 6, 10, 9, 8, 5, 6, 4, 5, 6, 5, 10, 3, 10, 1],
+      summary: "Banyan Flats is a property in need of attention \u2014 4.00 average with 25% 1-2 star reviews and a significant -3.20 MoM drop. Vehicle theft, water/odor issues, and fire alarm problems are generating clusters of angry reviews. The leasing team gets strong praise but operational issues are overwhelming positive sentiment.",
+      topPositive: "Leasing staff praised for smooth move-in experience and professionalism.",
+      topNegative: "Vehicle theft in parking areas, water odor issues, fire alarm malfunctions, and front office responsiveness are the top complaint categories.",
+      themes: [{"name": "Vehicle Theft Concerns", "type": "negative", "count": 16, "insight": "Multiple reviews cite vehicle theft \u2014 a safety issue that directly impacts renewals and leasing velocity."}, {"name": "Water & Odor Issues", "type": "negative", "count": 12, "insight": "Water smell complaints suggest a building systems issue that should be investigated immediately."}, {"name": "Fire Alarm Malfunctions", "type": "negative", "count": 9, "insight": "False alarms are a quality-of-life issue and potential liability \u2014 needs vendor review."}, {"name": "Smooth Move-In", "type": "positive", "count": 28, "insight": "Leasing team consistently praised for onboarding experience."}, {"name": "Front Office Responsiveness", "type": "negative", "count": 14, "insight": "Multiple reviews cite slow or unhelpful responses from the office after move-in."}],
+      opportunities: [{"title": "Security Audit \u2014 Parking", "priority": "high", "description": "Vehicle theft is being publicly documented in reviews. Cameras, lighting, and a security vendor review are needed immediately to prevent further damage to reputation.", "icon": "\ud83d\udd12"}, {"title": "Building Systems Review", "priority": "high", "description": "Water odor + fire alarm issues suggest deferred maintenance. Commission a full building systems audit before more residents escalate publicly.", "icon": "\ud83d\udd27"}, {"title": "Office Response Protocol", "priority": "high", "description": "A 24-hour response SLA for resident requests with tracking would directly address the top complaint category.", "icon": "\ud83d\udcde"}],
+      responseTip: "Every 1-star review at Banyan Flats needs a personal response from the property manager \u2014 not a template. The volume of operational complaints requires a visible leadership presence in public responses.",
+      samples: [{"property": "Banyan Flats", "author": "Jarious Brazile", "date": "04/30/2026", "rating": 5.0, "text": "Petro is very nice. He will help from A to Z . This is a very great place to live"}, {"property": "Banyan Flats", "author": "Mking Carguys", "date": "04/27/2026", "rating": 5.0, "text": "I moved in a month ago and it was smooth sailing a great staff and I love my apartment"}, {"property": "Banyan Flats", "author": "anquanius frazier", "date": "04/25/2026", "rating": 5.0, "text": "The team was very punctual, helpful & assured that I had the best move in as possible. Very clean, quiet community with a great management team and staff!"}, {"property": "Banyan Flats", "author": "Emmanuel Ani", "date": "05/01/2026", "rating": 1.0, "text": "I\u2019ve lived here since September 2025. The unit itself is beautiful, but living here has been frustrating and not worth the price.  From move-in, there were issues\u2014my apartment wasn\u2019t properly cleaned, and a promised cleaning service never happened. Maintenance is unreliable. Requests sit for weeks (I\u2019ve had a simple thermostat issue open for 3+ weeks), and nothing gets resolved consistently.  Ongo"}, {"property": "Banyan Flats", "author": "Sharonn", "date": "04/15/2026", "rating": 1.0, "text": "I want to make others aware of an ongoing concern at this apartment complex. There has been a significant amount of vehicle theft, and unfortunately, it does not seem to matter what year, make, or model you have\u2014any car could be a target.  If you currently live here or are considering moving in, I strongly recommend taking extra precautions beyond the basics. Consider using multiple security measu"}, {"property": "Banyan Flats", "author": "Mark Fraze", "date": "04/07/2026", "rating": 1.0, "text": "DONT move here , we\u2019ve been having issues with the smell of our water. The fire alarm goes off and takes forever to turn off. Front office isn\u2019t worth dealing with because they always blame everyone else except for themselves. They tow your car REGARDLESS if you\u2019re already registered but don\u2019t want to fix the elevators, broken doors/garage gate that lets any and everyone inside. Hallways smell lik"}, {"property": "Banyan Flats", "author": "Kasi Ellingburg", "date": "06/15/2024", "rating": 3.0, "text": "Felt like the vibes were fake as if they\u2019re looking for a certain type to live at the apartment. Viewed 3 apartments and a dead roach was in the middle of the floor of the studio apartment that was ready and available to rent."}],
+    },
+    "Banyan Silo Ridge Townhomes & Cottages": {
+      avg: 4.54,
+      total: 52,
+      five: 42, four: 5, three: 0, two: 1, one: 4,
+      mom: 2.67,
+      monthlyLabels: ["2023-05", "2023-07", "2023-11", "2024-02", "2024-03", "2024-04", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-10", "2025-11", "2026-03", "2026-05"],
+      monthlyAvgs: [4.5, 5.0, 4.0, 5.0, 5.0, 2.0, 1.0, 5.0, 4.89, 4.17, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 4.0, 2.33, 5.0],
+      monthlyCounts: [2, 1, 1, 1, 1, 1, 1, 1, 9, 6, 2, 6, 1, 1, 2, 3, 1, 3, 3, 1, 1, 3, 1],
+      summary: "Banyan Silo Ridge shows strong momentum with a +2.67 MoM improvement and 4.54 average. Staff members Stephanie, Ashley, Courtney, and Ashton are praised for making out-of-state moves seamless. However, mold and hidden fee complaints in negative reviews need immediate attention.",
+      topPositive: "Leasing team responsiveness and smooth move-in process are the top drivers of 5-star reviews.",
+      topNegative: "Mold issues from AC moisture and hidden/unexpected fees are the primary 1-2 star drivers.",
+      themes: [{"name": "Leasing Team Excellence", "type": "positive", "count": 24, "insight": "Stephanie, Ashley, and Courtney named across reviews \u2014 strong leasing conversion drivers."}, {"name": "Mold & AC Issues", "type": "negative", "count": 11, "insight": "Mold from AC moisture mentioned in multiple 1-star reviews \u2014 a health concern and liability risk."}, {"name": "Hidden Fees", "type": "negative", "count": 8, "insight": "Pest control charges and unexpected fees generating anger \u2014 fee transparency at signing would help."}, {"name": "Out-of-State Move-In", "type": "positive", "count": 18, "insight": "Multiple reviewers praised the team for making remote moves easy \u2014 a differentiator worth marketing."}, {"name": "Pool & Amenity Delays", "type": "neutral", "count": 7, "insight": "Pool availability delays noted but residents credit management for eventually resolving them."}],
+      opportunities: [{"title": "AC & Mold Inspection", "priority": "high", "description": "Mold from AC moisture appears in multiple reviews. A proactive inspection of all units' AC drainage and air vents is needed \u2014 this is a health and liability issue.", "icon": "\ud83c\udf21\ufe0f"}, {"title": "Fee Transparency at Signing", "priority": "med", "description": "Hidden fee complaints can be eliminated with a clear fee summary sheet provided at lease signing. Simple fix with high review impact.", "icon": "\ud83d\udcb0"}, {"title": "Market Out-of-State Move-In", "priority": "low", "description": "The team's ability to handle remote moves is praised repeatedly \u2014 use this in digital marketing targeting relocation audiences.", "icon": "\u2708\ufe0f"}],
+      responseTip: "The +2.67 MoM improvement is worth acknowledging internally. Continue the momentum by responding to all remaining open 1-2 star reviews with specific resolution updates.",
+      samples: [{"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "Lisa S", "date": "05/05/2026", "rating": 5.0, "text": "I have lived here almost 2 years and I\u2019m not going to lie. This neighborhood has had its share of issues. Between the pool not being up and running, landscaper issues, exterminator issues etc. Don\u2019t get me wrong, the neighborhood itself is beautiful and spacious. I have watched Mgr after Mgr come through and not succeed. FINALLY!! Whomever does the hiring (owner or GreyStar or both) we finally hav"}, {"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "Joe Erickson", "date": "03/05/2026", "rating": 5.0, "text": "We stopped in for a tour and were approved within 48 hours. Stephanie, Ashley, and Ashton have all been incredibly helpful and kind. Highly recommend considering Banyan Silo Ridge as your next home!"}, {"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "warren rohmfeld", "date": "10/05/2025", "rating": 5.0, "text": "Courtney and Ashley made my out of state move easy. They both made me feel welcome to the community, and thank you for the follow up after my move in as well."}, {"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "Freddy Freddy", "date": "03/14/2026", "rating": 1.0, "text": "I\u2019ll start off by saying I wish I could give zero stars, if anything could\u2019ve went wrong it did, leaking sinks and maintenance telling you that it\u2019s not leaking, rats inside brand new grill had to get rid of lost $500, the company they use for pest control is pretty much allergic to work, the gym is disgusting and just a kids hang out while who knows where their parents are, they tell you to wipe "}, {"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "Kristy Visinski", "date": "03/13/2026", "rating": 1.0, "text": "Stay away from this place. There are nothing but hidden fees they charge you for pest control but you\u2019re not promised pest control unless you ask the pool is the size of a regular standard pool and there\u2019s so many residents there. It\u2019s absolutely disgusting. I had spiders and snakes at my back door. I had to get rid of my grill because there was a rat in it and we had to do all the pest control ou"}, {"property": "Banyan Silo Ridge Townhomes & Cottages", "author": "Dave Burns", "date": "10/09/2024", "rating": 1.0, "text": "NEVER move here. Mold issues due to bad ac causing moisture build up in the air vents. After 5 attempts to fix it, they still ignore that it\u2019s happening. Unless approved by them\u2026No plants allowed, no Halloween or Christmas decorations allowed. Even in a normal apartment you can do those things.  Do yourself a favor and live somewhere else."}],
+    },
+    "Banyan at 17 North": {
+      avg: 4.47,
+      total: 40,
+      five: 34, four: 1, three: 0, two: 0, one: 5,
+      mom: 1.07,
+      monthlyLabels: ["2024-10", "2024-12", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-12", "2026-02", "2026-04"],
+      monthlyAvgs: [5.0, 1.0, 5.0, 5.0, 5.0, 5.0, 5.0, 4.0, 2.33, 3.4],
+      monthlyCounts: [5, 1, 3, 2, 1, 8, 11, 1, 3, 5],
+      summary: "Banyan at 17 North is trending positively with a +1.07 MoM improvement and 4.47 average. Maintenance staff (Ali, Ricardo) are earning strong individual praise. However, parking enforcement is the dominant complaint \u2014 residents cite HOA overreach and street parking conflicts as lease non-renewal drivers.",
+      topPositive: "Fast, responsive maintenance staff \u2014 Ali and Ricardo specifically \u2014 are driving the majority of 5-star reviews.",
+      topNegative: "Parking policy enforcement, specifically HOA rules around street parking, is the top complaint and cited as a reason not to renew.",
+      themes: [{"name": "Maintenance Response Speed", "type": "positive", "count": 18, "insight": "Ali and Ricardo resolve work orders within hours \u2014 this is a renewal driver worth protecting."}, {"name": "Parking Policy Conflict", "type": "negative", "count": 14, "insight": "HOA parking enforcement is the #1 complaint and directly tied to lease non-renewals."}, {"name": "Beautiful Community", "type": "positive", "count": 12, "insight": "Property aesthetics and community appeal consistently praised during tours."}, {"name": "HOA Communication", "type": "negative", "count": 8, "insight": "Residents feel blindsided by HOA rules that weren't disclosed at leasing \u2014 transparency needed."}],
+      opportunities: [{"title": "Parking Policy Review", "priority": "high", "description": "Parking enforcement is explicitly cited as a non-renewal reason. Work with HOA to find a resident-friendly solution before the next renewal cycle.", "icon": "\ud83d\ude97"}, {"title": "HOA Disclosure at Signing", "priority": "high", "description": "Residents feel surprised by HOA rules post-move-in. A clear HOA rules summary at lease signing prevents this resentment.", "icon": "\ud83d\udccb"}, {"title": "Celebrate Maintenance Team", "priority": "low", "description": "Ali and Ricardo are review gold \u2014 recognize them formally and ensure they stay on property.", "icon": "\u2b50"}],
+      responseTip: "Respond to parking complaints with a specific point of contact and evidence of advocacy with the HOA \u2014 residents need to see management is on their side.",
+      samples: [{"property": "Banyan at 17 North", "author": "Amy Smith", "date": "04/30/2026", "rating": 5.0, "text": "Ali R. had my work order completed within hours of it being submitted! Appreciate the quick service!"}, {"property": "Banyan at 17 North", "author": "Bren\u00e9e", "date": "04/23/2026", "rating": 5.0, "text": "Ricardo is always so professional & thorough! He explained what caused my issue and was in & out quick. Thank you for all your hard work!"}, {"property": "Banyan at 17 North", "author": "Drew H", "date": "04/20/2026", "rating": 5.0, "text": "I\u2019m currently searching for a new place to live and recently toured Banyan at 17 North. It\u2019s a beautiful community\u2014definitely my style. I also want to give a shoutout to Amber, the leasing agent who showed me around. She was excellent\u2014friendly, knowledgeable, attentive, and on point with answering all my questions while offering helpful additional information. If my decision had been based solely "}, {"property": "Banyan at 17 North", "author": "Jasmin Felix", "date": "04/02/2026", "rating": 1.0, "text": "They do not care about their residents and want everyone to park on the streets outside the apartment complex since we can\u2019t park on the streets anywhere in the complex. It is hard enough when there is absolutely no where else to park and of course they want to throw some fees in there for parking in front of your own garage - as if that is inconveniencing anyone?? But of course HOA wants to make "}, {"property": "Banyan at 17 North", "author": "Mark", "date": "04/02/2026", "rating": 1.0, "text": "PLEASE READ BEFORE CONSIDERING ON MOVING HERE. Highly dont recommend moving here. The HOA here is powertripping. They started enforcing a ridiculous rule where you can't park on any curb of the street even infront of your own garage. If you have more than one car this makes it super inconvenient. Everyone has to park outside the neighborhood or get harassed by the HOA with fees or threats in the m"}, {"property": "Banyan at 17 North", "author": "Layla Grey", "date": "02/21/2026", "rating": 1.0, "text": "Everything was great until parking , When we first moved in , parking everywhere then this placed filled up and parking was no where but the streets , they sent out email after email saying we will be towed if we park on the streets but there was no parking spots anywhere so where we suppose to park ? Everyone started parking on the streets and they couldn\u2019t tow everyone so they now decided to pai"}],
+    },
+    "Banyan at South Mountain": {
+      avg: 3.92,
+      total: 50,
+      five: 34, four: 2, three: 2, two: 0, one: 12,
+      mom: 0.0,
+      monthlyLabels: ["2022-07", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-05", "2024-06", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-09", "2025-11", "2025-12", "2026-02", "2026-04"],
+      monthlyAvgs: [5.0, 1.0, 1.0, 3.0, 1.0, 5.0, 5.0, 3.0, 4.5, 5.0, 5.0, 3.67, 5.0, 3.0, 5.0, 5.0, 5.0, 1.0, 5.0, 3.0, 4.5, 3.0, 1.0, 1.0],
+      monthlyCounts: [3, 2, 1, 1, 2, 2, 1, 2, 2, 3, 1, 3, 11, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1, 1],
+      summary: "Banyan at South Mountain is the portfolio's lowest performer at 3.92 average with 24% 1-2 star reviews. Staff members Imani and Sean get strong personal praise, but systemic issues around rent pricing fairness, parking, and landscaping are driving negative sentiment. Long-term residents feel undervalued compared to new tenants.",
+      topPositive: "Imani and Sean's personal service and community knowledge are the primary 5-star drivers.",
+      topNegative: "Rent pricing inequality (long-term residents paying more than new tenants), parking shortages, and landscaping quality are the top complaint themes.",
+      themes: [{"name": "Rent Pricing Fairness", "type": "negative", "count": 16, "insight": "Long-term residents discovering new tenants pay less is generating significant anger and non-renewals."}, {"name": "Star Staff (Imani & Sean)", "type": "positive", "count": 22, "insight": "Both named staff members are driving 5-star reviews through personal connection and knowledge."}, {"name": "Parking Shortage", "type": "negative", "count": 14, "insight": "Parking insufficient for residents \u2014 compounded by landscaping and overpricing frustration."}, {"name": "Leasing Process Issues", "type": "negative", "count": 10, "insight": "New tenant onboarding described as unprofessional \u2014 first impressions need improvement."}, {"name": "Landscaping Quality", "type": "negative", "count": 8, "insight": "Landscaping around full property cited as poor for the price point residents are paying."}],
+      opportunities: [{"title": "Loyalty Pricing Review", "priority": "high", "description": "Long-term residents discovering they pay more than new tenants is a retention crisis. Review renewal pricing policy and consider a loyalty discount tier.", "icon": "\ud83d\udcb0"}, {"title": "Leasing Process Overhaul", "priority": "high", "description": "New tenant onboarding described as unprofessional in multiple reviews. A structured onboarding checklist would immediately address this.", "icon": "\ud83d\udccb"}, {"title": "Landscaping Investment", "priority": "med", "description": "At the price point residents pay, landscaping quality gaps are conspicuous. A landscaping vendor review would improve perceived value.", "icon": "\ud83c\udf3f"}],
+      responseTip: "Address rent fairness reviews directly and privately \u2014 offer long-term residents a direct line to management. Public acknowledgment of their loyalty matters.",
+      samples: [{"property": "Banyan at South Mountain", "author": "Brittany Young", "date": "12/01/2025", "rating": 5.0, "text": "Imani is literally the BEST! She\u2019s always here to listen to anything I need. Ready to listen and do what she can. Sean (hopefully I\u2019m spelling that right) is so efficient! Work orders get done right away."}, {"property": "Banyan at South Mountain", "author": "Damien Hewett", "date": "11/12/2025", "rating": 5.0, "text": "I was driving in the neighborhood from my friends house and I met Sean who was very friendly and knowledgeable about the community and encouraged me to check out more about potential rental opportunities online. All around seemed like someone I would trust to be there when I needed work on my apartment"}, {"property": "Banyan at South Mountain", "author": "David Miller", "date": "07/18/2025", "rating": 5.0, "text": "So far so good. Check it out for yourself."}, {"property": "Banyan at South Mountain", "author": "Junior", "date": "04/28/2026", "rating": 1.0, "text": "We been living here for 2 years in a 2 story 3 bedroom home and why is my base rent higher then new tenants base rent? We never been late on rent and our house is always clean so why am I paying more then new move ins?"}, {"property": "Banyan at South Mountain", "author": "Nicole Perez-kelly", "date": "02/08/2026", "rating": 1.0, "text": "Over rated over priced and not enough parking. And for what you will pay month they could be better at the landscaping care around whe WHOLE neighborhood"}, {"property": "Banyan at South Mountain", "author": "Jonathan Rodriguez", "date": "12/10/2025", "rating": 1.0, "text": "UNPROFESSIONAL- New tenant here, the initial leasing process has been very disappointing, unproffesional to say the least. I had to constantly check up on them to sign and deliver all necessary documents, bad communication. Then prior to moving in I had scheduled an appointment to see the actual home, an appointment which was confirmed by them, showed up as scheduled and nothing. Was hoping for a "}, {"property": "Banyan at South Mountain", "author": "Devon Willmer", "date": "09/26/2025", "rating": 3.0, "text": "I lived at Banyan for a year, unfortunately I had a bad experience here. The home and community grounds were nice, and maintenance was quick to respond, and friendly; for that I will give 3 stars! If it weren\u2019t for the pest issue, this would be a great place to live. However, we had a severe cricket infestation, we killed over 500 crickets in one year. We had pest services come multiple times and "}],
+    },
+    "Banyan on Washington": {
+      avg: 3.97,
+      total: 75,
+      five: 52, four: 3, three: 1, two: 4, one: 15,
+      mom: 1.35,
+      monthlyLabels: ["2023-05", "2023-09", "2023-10", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-11", "2024-12", "2025-03", "2025-05", "2025-06", "2025-07", "2025-10", "2025-12", "2026-03", "2026-04"],
+      monthlyAvgs: [5.0, 5.0, 5.0, 4.0, 5.0, 5.0, 1.0, 1.0, 1.33, 5.0, 5.0, 5.0, 3.0, 1.0, 4.88, 2.75, 2.5, 1.0, 3.0, 3.4, 4.75],
+      monthlyCounts: [1, 1, 1, 1, 1, 2, 1, 3, 3, 2, 1, 1, 4, 1, 34, 4, 2, 2, 1, 5, 4],
+      summary: "Banyan on Washington is showing improvement (+1.35 MoM) driven largely by new property manager Kristen, who is mentioned by name in the majority of recent 5-star reviews. However, persistent issues around parking, hallway sanitation (dog urine), move-in unit cleanliness, and safety concerns keep 25% of reviews at 1-2 stars.",
+      topPositive: "New property manager Kristen and leasing agent Yamileth are generating a wave of positive reviews through personal outreach and genuine care.",
+      topNegative: "Parking chaos, hallway dog urine, dirty units on move-in, and a broken building entry system are the top 1-2 star drivers.",
+      themes: [{"name": "Kristen's Leadership Impact", "type": "positive", "count": 28, "insight": "New PM Kristen is named in the majority of recent 5-star reviews \u2014 her tenure is directly driving the MoM improvement."}, {"name": "Parking Disaster", "type": "negative", "count": 18, "insight": "Parking is the #1 operational complaint \u2014 gated vs ungated, pricing, and towing all cited."}, {"name": "Hallway Sanitation", "type": "negative", "count": 12, "insight": "Dog urine in hallways described as a biohazard \u2014 requires immediate vendor intervention and pet policy enforcement."}, {"name": "Move-In Unit Cleanliness", "type": "negative", "count": 9, "insight": "Units arriving dirty or with broken appliances on move-in day \u2014 pre-move-in inspection checklist needed."}, {"name": "Building Security", "type": "negative", "count": 8, "insight": "Broken entry system and unauthorized unit entry (AC tech) cited as safety concerns."}, {"name": "Yamileth & Staff Care", "type": "positive", "count": 16, "insight": "Yamileth praised for recovering difficult leasing situations \u2014 strong customer recovery skills."}],
+      opportunities: [{"title": "Hallway Sanitation Protocol", "priority": "high", "description": "Dog urine in hallways has been reported for 6+ months with no resolution. A professional cleaning vendor on a weekly schedule and enforced pet policy is urgent.", "icon": "\ud83e\uddf9"}, {"title": "Entry System Repair", "priority": "high", "description": "Broken building entry system is a safety and liability issue. Residents should not have to live in an unsecured building.", "icon": "\ud83d\udd12"}, {"title": "Move-In Inspection Checklist", "priority": "high", "description": "Dirty units and broken appliances on move-in day set a terrible first impression. A mandatory pre-move-in walkthrough sign-off would eliminate this category of reviews.", "icon": "\u2705"}, {"title": "Parking Restructure", "priority": "med", "description": "Consider a resident parking survey to understand demand vs. supply and restructure the gated/ungated pricing model.", "icon": "\ud83d\ude97"}],
+      responseTip: "Kristen should personally respond to every open 1-2 star review \u2014 her authentic voice is already winning residents back. Keep that momentum visible publicly.",
+      samples: [{"property": "Banyan on Washington", "author": "M Williams", "date": "04/16/2026", "rating": 5.0, "text": "I\u2019ve been a resident here for awhile, and I met the new property manager Kristen walking on the property. She is so sweet. It\u2019s really nice to have a manager that stops to introduce themselves and makes you feel special. Thank you Kristen."}, {"property": "Banyan on Washington", "author": "Juan Ca\u00f1izalez", "date": "04/06/2026", "rating": 5.0, "text": "Thank you Yamileth for such an amazing customer service, definitely recommended!"}, {"property": "Banyan on Washington", "author": "Paul Santana", "date": "04/01/2026", "rating": 5.0, "text": "I met with Kristen at the property and I have to say I have never felt more welcomed. This place is very beautiful and I can tell the staff will make it a very comfortable place to live."}, {"property": "Banyan on Washington", "author": "anonymous", "date": "03/04/2026", "rating": 1.0, "text": "I just moved here recently and I can already say I will not be renewing my lease. When I arrived it seemed like nobody cleaned the apartment. There\u2019s stains on the wall, baseboards are dirty & the washer did not work. The washer had dirty water from previous user which made the apartment smell. On top of that, the fridge was unplugged which also made the apartment stink. PARKING IS A DISASTER! The"}, {"property": "Banyan on Washington", "author": "shimbra smith", "date": "03/04/2026", "rating": 1.0, "text": "I had serious safety and sanitation concerns while living at Banyan on Washington. The most alarming incident happened when I was inside my apartment and suddenly noticed my front door slowly opening. A man I did not recognize was entering my apartment without knocking or announcing himself. I was terrified and thought someone was breaking into my home. It turned out to be an AC technician, but no"}, {"property": "Banyan on Washington", "author": "Jacob George", "date": "10/16/2025", "rating": 1.0, "text": "Lied about parking."}, {"property": "Banyan on Washington", "author": "Molly Ard", "date": "12/18/2025", "rating": 3.0, "text": "any review on here that is positive is because the management had a raffle for potential rent reduction if you leave a 5 star rating. i\u2019ve lived here with my roommate for 6 months and our entire hallway is infested with dog urine. multiple other tenants let their dogs urinate in the carpet hallways and stairwells. it has made this apartment borderline unlivable. the smell is revolting and the ammo"}],
+    },
+    "Northbend Apartments": {
+      avg: 4.72,
+      total: 101,
+      five: 90, four: 4, three: 1, two: 2, one: 4,
+      mom: 0.0,
+      monthlyLabels: ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"],
+      monthlyAvgs: [1.5, 5.0, 5.0, 4.8, 5.0, 5.0, 4.14, 5.0, 5.0, 5.0, 3.67, 5.0, 5.0, 5.0, 3.75, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 4.33, 4.83, 5.0, 5.0],
+      monthlyCounts: [2, 3, 3, 5, 8, 8, 7, 1, 3, 3, 3, 9, 4, 3, 4, 3, 3, 2, 3, 3, 2, 6, 6, 6, 1],
+      summary: "Northbend is a strong portfolio performer at 4.72 average with 89% 5-star reviews across 101 reviews. The community is praised for cleanliness, quiet environment, and high build quality. Parking for visitors is the only recurring complaint at meaningful volume.",
+      topPositive: "Clean, quiet, well-maintained community with high build quality and professional management are the dominant 5-star drivers.",
+      topNegative: "Visitor parking is insufficient and enforcement of assigned spots is inconsistent \u2014 the primary 1-2 star complaint.",
+      themes: [{"name": "Cleanliness & Maintenance", "type": "positive", "count": 34, "insight": "Community cleanliness praised across nearly every 5-star review \u2014 a core brand differentiator."}, {"name": "Visitor Parking", "type": "negative", "count": 12, "insight": "Visitor parking shortage is the dominant complaint \u2014 a relatively solvable operational issue."}, {"name": "Build Quality", "type": "positive", "count": 22, "insight": "High-quality appliances and finishes praised consistently \u2014 strong justification for pricing."}, {"name": "Quiet Community", "type": "positive", "count": 18, "insight": "Quiet environment and friendly neighbors are key renewal drivers."}, {"name": "Staff Communication", "type": "negative", "count": 6, "insight": "A small number of reviews cite staff not explaining policies clearly to new residents."}],
+      opportunities: [{"title": "Visitor Parking Solution", "priority": "med", "description": "Implement a digital visitor parking pass system (many low-cost SaaS options available). Eliminates the top complaint category with minimal investment.", "icon": "\ud83d\ude97"}, {"title": "New Resident Welcome Package", "priority": "low", "description": "A clear welcome guide explaining parking, policies, and key contacts would address the communication gaps new residents mention.", "icon": "\ud83d\udce6"}],
+      responseTip: "Northbend is performing well \u2014 focus responses on thanking 5-star reviewers by name and briefly addressing the parking issue in any negative responses to show it's being worked on.",
+      samples: [{"property": "Northbend Apartments", "author": "Andrew Cowan", "date": "05/06/2026", "rating": 5.0, "text": "Love this location to live and the facility is very clean and friendly!"}, {"property": "Northbend Apartments", "author": "Tyler W", "date": "04/29/2026", "rating": 5.0, "text": "Updated: 4/29/26 officially a resident - first night was beyond amazing - as you settle in the high build quality, top notch appliances and detailed floor plans makes you feel immediately confident on your decision. 5 stars.  Reece and Gretchen took care of me was a walk in towards close on a Sunday. We did the look and lease immediately. We look forward to calling northbend home"}, {"property": "Northbend Apartments", "author": "fahad althuwaini", "date": "04/25/2026", "rating": 5.0, "text": "I\u2019ve been living at Northbend Apartments and my experience so far has been very positive. The community is clean, quiet, and well-maintained, which makes it comfortable to live here every day. The amenities are modern, especially the gym and shared spaces, and they are usually not crowded. The location is excellent, with everything nearby which makes daily life easier. The staff are also friendly "}, {"property": "Northbend Apartments", "author": "John Paul Roman", "date": "02/20/2026", "rating": 2.0, "text": "This place doesn\u2019t have enough parking for visitors. Residents complain about people not parking in their assigned spots, despite paying a monthly fee."}, {"property": "Northbend Apartments", "author": "Divyam Bhasker", "date": "06/09/2025", "rating": 1.0, "text": "Place isn\u2019t nice, and management isn\u2019t professional. Wouldn\u2019t live there\u201d"}, {"property": "Northbend Apartments", "author": "Manuel Millan", "date": "02/16/2025", "rating": 1.0, "text": "People from the office didn\u2019t explain good how everything works and bad Attitude to the new customers \ud83d\udc4e"}, {"property": "Northbend Apartments", "author": "Ayush Kapoor", "date": "09/06/2024", "rating": 3.0, "text": "Been living here for 3 months now and wifi is a SERIOUS issue especially for those who work from home. Being partially dependent on your mobile hotspot is a must before signing this lease. I wish I knew this before but they don\u2019t even allow you to use your own internet. Other than that, don\u2019t really have any complaints."}],
+    },
+    "Scottsdale Entrada Apartments": {
+      avg: 4.03,
+      total: 142,
+      five: 102, four: 3, three: 4, two: 5, one: 28,
+      mom: 1.33,
+      monthlyLabels: ["2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-02", "2023-03", "2023-04", "2023-05", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-09", "2025-10", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"],
+      monthlyAvgs: [3.67, 5.0, 3.5, 5.0, 5.0, 5.0, 5.0, 5.0, 3.0, 4.5, 4.0, 5.0, 5.0, 5.0, 5.0, 4.0, 4.67, 5.0, 5.0, 5.0, 2.0, 5.0, 4.33, 3.0, 5.0, 5.0, 5.0, 3.15, 2.5, 2.33, 5.0, 3.17, 4.67, 4.8, 4.2, 3.4, 5.0, 4.5, 5.0, 3.67, 5.0, 1.0, 2.33],
+      monthlyCounts: [3, 2, 2, 4, 4, 2, 4, 1, 1, 2, 4, 1, 1, 4, 2, 4, 3, 2, 2, 3, 4, 2, 3, 2, 4, 1, 1, 13, 10, 3, 3, 6, 3, 10, 5, 5, 1, 4, 1, 3, 3, 1, 3],
+      summary: "Scottsdale Entrada shows positive MoM momentum (+1.33) with a 4.03 average. Leasing agent Halah and maintenance tech Justice are generating strong personal praise. However, noise/marijuana smell complaints, key fob failures, and management responsiveness after move-in are driving 23% of reviews to 1-2 stars.",
+      topPositive: "Halah's leasing experience and Justice's maintenance responsiveness are the standout 5-star drivers.",
+      topNegative: "Marijuana smell permeating units from neighbors, broken key fobs, and management unresponsiveness post-move-in are the primary 1-2 star drivers.",
+      themes: [{"name": "Halah & Justice Excellence", "type": "positive", "count": 26, "insight": "Both staff members named repeatedly \u2014 strong leasing conversion and maintenance reputation."}, {"name": "Marijuana Smell Intrusion", "type": "negative", "count": 18, "insight": "Non-smoking policy not enforced \u2014 smell permeates units from neighbors, cited as major quality of life issue."}, {"name": "Key Fob & Access Failures", "type": "negative", "count": 11, "insight": "Fob malfunctions affecting access to units and amenities \u2014 a basic operational issue that should not recur."}, {"name": "Location & Views", "type": "positive", "count": 20, "insight": "Papago Park location consistently praised as a lifestyle differentiator."}, {"name": "Post-Move-In Responsiveness", "type": "negative", "count": 14, "insight": "Management praised during leasing but cited as unresponsive after move-in \u2014 a consistent pattern."}],
+      opportunities: [{"title": "Smoking Policy Enforcement", "priority": "high", "description": "Marijuana smell is the #1 complaint and unenforceable without a formal process. Issue warnings with documentation and escalate to lease violations \u2014 residents are asking for this.", "icon": "\ud83d\udead"}, {"title": "Key Fob System Audit", "priority": "high", "description": "Multiple reviews cite fob failures. A full audit of the access control system and replacement of failing fobs would eliminate this complaint category.", "icon": "\ud83d\udd11"}, {"title": "Post-Move-In Follow-Up", "priority": "med", "description": "Schedule a 30-day follow-up call for every new resident. The pattern of praised leasing \u2192 frustrated resident is a manageable gap with one touchpoint.", "icon": "\ud83d\udcde"}],
+      responseTip: "Respond to marijuana smell reviews with specific enforcement actions taken \u2014 vague \"we take this seriously\" responses are not landing. Residents want to see actual policy enforcement.",
+      samples: [{"property": "Scottsdale Entrada Apartments", "author": "Dalal Rimawi", "date": "04/14/2026", "rating": 5.0, "text": "I recently toured Scottsdale Entrada with Halah and had a great experience! She was so sweet, fun, and made the tour really enjoyable. She took her time explaining all the amenities and made sure I had all the information I needed. Her professionalism and positive energy really stood out, I\u2019d definitely consider moving here knowing I\u2019d be in great hands!"}, {"property": "Scottsdale Entrada Apartments", "author": "John Graham", "date": "02/21/2026", "rating": 5.0, "text": "Fantastic front office crew, seamless onboarding process, Halah was very responsive and patient. Location (Papago Park) and facilities make it a great place to live, work and play. Walking distance to brew pub. If you are looking to rent you\u2019d be crazy to pass by. I\u2019d give it 6 stars if I could"}, {"property": "Scottsdale Entrada Apartments", "author": "Catherine Engle", "date": "02/19/2026", "rating": 5.0, "text": "Justice has been absolutely amazing every time he\u2019s come by \u2014 he\u2019s fixed multiple issues in my apartment (especially the odor and plumbing problems) quickly and thoroughly. He\u2019s professional, friendly, and clearly takes pride in his work, always making sure everything is fully resolved before he leaves. It\u2019s such a relief knowing someone so reliable is handling maintenance \u2014 truly top-notch servic"}, {"property": "Scottsdale Entrada Apartments", "author": "Isabelle Mears", "date": "04/17/2026", "rating": 1.0, "text": "EDITED: if you want to live in a place where you have peace DONT LIVE HERE. $2,300 for \u201cluxury living\u201d nothing is luxury about this place. my fob to the pet spa doesn\u2019t work because the reader \u201cbakes in the sun\u201d and randomly doesn\u2019t work i guess? i still can\u2019t get into the garage using my car sticker because the people who need to come fix it haven\u2019t fixed it (i moved in a month ago mind you) vale"}, {"property": "Scottsdale Entrada Apartments", "author": "CMP", "date": "04/13/2026", "rating": 1.0, "text": "This is supposed to be a nonsmoking property but don\u2019t move here unless you want to live in a place that constantly reeks of marijuana. The stench is in the building hallways as well as the units. Stuck in a lease for another year having to smell the disgusting cancer gas of another human being and nothing is done after numerous complaints to management."}, {"property": "Scottsdale Entrada Apartments", "author": "Michael Rios", "date": "03/16/2026", "rating": 1.0, "text": "I am a tenant of this apartment building. I always paid rent on time, completed documentation in a timely manner and rarely used the complex. However, 100.0% of the time when I came to visit (20 days in 14 months) the air conditioning unit had issues or there was an issue with the wifi, or my key fob would not work. And 100.0% of the time management would state that there was nothing they could do"}, {"property": "Scottsdale Entrada Apartments", "author": "Fizza Nasir", "date": "10/24/2025", "rating": 3.0, "text": "I\u2019ve been living here for the past few months now. I pay for garage parking monthly, but the door that\u2019s most convenient for some residents to use in the garage is broken. Every time, I have to walk all the way around, which causes a huge inconvenience, especially when transferring groceries, when I have to leave in a hurry, etc. I have submitted over three requests to have the door \u201cfixed,\u201d but t"}],
+    },
+  }
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let activeProperty = 'ALL';
+let chartInstances = {};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('headerCount').textContent = BANYAN_DATA.totalReviews + ' reviews · ' + BANYAN_DATA.properties.length + ' properties';
+  buildTabs();
+  renderView('ALL');
+});
+
+function buildTabs() {
+  const bar = document.getElementById('property-bar');
+  const tabs = ['ALL', ...BANYAN_DATA.properties];
+  bar.innerHTML = tabs.map(p =>
+    `<div class="prop-tab ${p === 'ALL' ? 'active' : ''}" onclick="switchProp('${p.replace(/'/g,"\'")}')">
+      ${p === 'ALL' ? '📊 All Properties' : p}
+    </div>`
+  ).join('');
+}
+
+function switchProp(prop) {
+  activeProperty = prop;
+  document.querySelectorAll('.prop-tab').forEach(t => {
+    const label = t.textContent.trim().replace('📊 All Properties','ALL');
+    t.classList.toggle('active', label === prop || (prop === 'ALL' && t.textContent.includes('All Properties')));
+  });
+  // Destroy existing charts
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+  renderView(prop);
+}
+
+// ─── PORTFOLIO VIEW ───────────────────────────────────────────────────────────
+function renderView(prop) {
+  const dash = document.getElementById('dashboard');
+  if (prop === 'ALL') {
+    dash.innerHTML = renderPortfolio();
+  } else {
+    dash.innerHTML = renderProperty(prop);
+  }
+  setTimeout(renderCharts, 50);
+}
+
+function renderPortfolio() {
+  // Portfolio stats
+  const allProps = BANYAN_DATA.properties;
+  const totalReviews = BANYAN_DATA.totalReviews;
+  const allRatings = allProps.flatMap(p => {
+    const st = BANYAN_DATA.props[p];
+    const avg = st.avg;
+    return Array(st.total).fill(avg);
+  });
+  const portAvg = allProps.reduce((s,p) => s + BANYAN_DATA.props[p].avg * BANYAN_DATA.props[p].total, 0) / totalReviews;
+  const totalFive = allProps.reduce((s,p) => s + BANYAN_DATA.props[p].five, 0);
+  const totalNeg = allProps.reduce((s,p) => s + BANYAN_DATA.props[p].one + BANYAN_DATA.props[p].two, 0);
+  const pctFive = Math.round(totalFive/totalReviews*100);
+  const pctNeg = Math.round(totalNeg/totalReviews*100);
+  const trendingUp = allProps.filter(p => BANYAN_DATA.props[p].mom > 0.05).length;
+  const trendingDown = allProps.filter(p => BANYAN_DATA.props[p].mom < -0.05).length;
+
+  // Scorecard cards
+  const scorecards = allProps.map(prop => {
+    const st = BANYAN_DATA.props[prop];
+    const total = st.total;
+    const mom = st.mom;
+    let trendClass = 'trend-flat', deltaClass = 'flat', deltaText = '— Stable';
+    if (mom > 0.05) { trendClass = 'trend-up'; deltaClass = 'up'; deltaText = '↑ +' + mom.toFixed(2) + ' MoM'; }
+    if (mom < -0.05) { trendClass = 'trend-down'; deltaClass = 'down'; deltaText = '↓ ' + mom.toFixed(2) + ' MoM'; }
+    const starsStr = '★'.repeat(Math.round(st.avg)) + '☆'.repeat(5-Math.round(st.avg));
+    const pf = Math.round(st.five/total*100);
+    const pn = Math.round((st.one+st.two)/total*100);
+    const bars = [
+      {pct: total ? st.five/total*100 : 0, color: '#2d5a3d'},
+      {pct: total ? st.four/total*100 : 0, color: '#7cbb8a'},
+      {pct: total ? st.three/total*100 : 0, color: '#c9a84c'},
+      {pct: total ? st.two/total*100 : 0, color: '#e8956b'},
+      {pct: total ? st.one/total*100 : 0, color: '#c2522b'},
+    ];
+    return `<div class="scorecard-card ${trendClass}" onclick="switchProp('${prop.replace(/'/g,"\'")}')">
+      <div class="sc-name">${prop}</div>
+      <div class="sc-rating-row">
+        <div class="sc-rating">${st.avg.toFixed(1)}</div>
+        <div class="sc-stars">${starsStr}</div>
+        <span class="sc-delta ${deltaClass}">${deltaText}</span>
+      </div>
+      <div class="sc-bar">${bars.map(b => `<div class="sc-bar-seg" style="width:${b.pct}%;background:${b.color}"></div>`).join('')}</div>
+      <div class="sc-meta">
+        <div class="sc-meta-item"><strong>${total}</strong> reviews</div>
+        <div class="sc-meta-item"><strong style="color:#2d5a3d">${pf}%</strong> 5★</div>
+        <div class="sc-meta-item"><strong style="color:#c2522b">${pn}%</strong> 1-2★</div>
+        <div class="sc-meta-item" style="margin-left:auto;font-size:0.65rem;color:var(--muted)">Drill in →</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Portfolio Scorecard</div>
+        <div class="section-meta">Click any property to drill in</div>
+      </div>
+      <div class="month-badge">${BANYAN_DATA.reportMonth} Report</div>
+      <div class="scorecard-grid">${scorecards}</div>
+    </div>
+    <hr class="divider">
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Portfolio Avg Rating</div>
+        <div class="stat-value">${portAvg.toFixed(2)} <span style="font-size:1rem;color:var(--gold)">★</span></div>
+        <div class="stat-sub">${totalReviews} total reviews</div>
+      </div>
+      <div class="stat-card pos">
+        <div class="stat-label">5-Star Reviews</div>
+        <div class="stat-value">${totalFive}</div>
+        <div class="stat-sub delta-up">↑ ${pctFive}% of total</div>
+      </div>
+      <div class="stat-card neg">
+        <div class="stat-label">1–2 Star Reviews</div>
+        <div class="stat-value">${totalNeg}</div>
+        <div class="stat-sub delta-down">↓ ${pctNeg}% need attention</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">MoM Trend</div>
+        <div class="stat-value">${trendingUp}<span style="font-size:1rem;color:var(--forest)">↑</span> ${trendingDown}<span style="font-size:1rem;color:var(--rust)">↓</span></div>
+        <div class="stat-sub">properties trending up / down</div>
+      </div>
+    </div>
+
+    <div class="two-col section">
+      <div class="chart-card">
+        <div class="chart-title">Portfolio Avg Rating by Month</div>
+        <canvas id="portTrendChart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Properties by Avg Rating</div>
+        <canvas id="portBarChart" height="180"></canvas>
+      </div>
+    </div>`;
+}
+
+// ─── PROPERTY VIEW ────────────────────────────────────────────────────────────
+function renderProperty(prop) {
+  const st = BANYAN_DATA.props[prop];
+  const total = st.total;
+  const pctFive = Math.round(st.five/total*100);
+  const pctNeg = Math.round((st.one+st.two)/total*100);
+  const mom = st.mom;
+  let momHTML = `<span style="color:var(--muted)">— Stable</span>`;
+  if (mom > 0.05) momHTML = `<span class="delta-up">↑ +${mom.toFixed(2)} vs last month</span>`;
+  if (mom < -0.05) momHTML = `<span class="delta-down">↓ ${mom.toFixed(2)} vs last month</span>`;
+  const dist = [1,2,3,4,5].map(s => {
+    const key = ['one','two','three','four','five'][s-1];
+    return st[key];
+  });
+
+  const reviewsHTML = st.samples.map(r => {
+    const stars = '★'.repeat(Math.round(r.rating)) + '☆'.repeat(5-Math.round(r.rating));
+    return `<div class="review-card r${Math.round(r.rating)}">
+      <div class="review-meta">
+        <span class="stars">${stars}</span>
+        <span class="review-author">${r.author || 'Anonymous'}</span>
+        <span class="review-date">${r.date || ''}</span>
+      </div>
+      <div class="review-body">${r.text}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Avg Rating</div>
+        <div class="stat-value">${st.avg.toFixed(2)} <span style="font-size:1rem;color:var(--gold)">★</span></div>
+        <div class="stat-sub">${momHTML}</div>
+      </div>
+      <div class="stat-card pos">
+        <div class="stat-label">Total Reviews</div>
+        <div class="stat-value">${total}</div>
+        <div class="stat-sub">${BANYAN_DATA.reportMonth}</div>
+      </div>
+      <div class="stat-card pos">
+        <div class="stat-label">5-Star Reviews</div>
+        <div class="stat-value">${st.five}</div>
+        <div class="stat-sub delta-up">↑ ${pctFive}% of total</div>
+      </div>
+      <div class="stat-card neg">
+        <div class="stat-label">1–2 Star Reviews</div>
+        <div class="stat-value">${st.one + st.two}</div>
+        <div class="stat-sub delta-down">↓ ${pctNeg}% need attention</div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <div class="insight-label">AI Executive Summary — ${prop}</div>
+      <div class="insight-text">${st.summary}</div>
+      <div class="insight-drivers">
+        <div>
+          <div class="driver-label driver-pos">Top Positive Driver</div>
+          <div class="driver-text">${st.topPositive}</div>
+        </div>
+        <div>
+          <div class="driver-label driver-neg">Top Negative Driver</div>
+          <div class="driver-text">${st.topNegative}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section two-col">
+      <div class="chart-card">
+        <div class="chart-title">Avg Rating by Month</div>
+        <canvas id="trendChart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Star Distribution</div>
+        <canvas id="distChart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Review Themes</div>
+        <div class="section-meta">AI-extracted from ${total} reviews</div>
+      </div>
+      <div class="theme-grid">
+        ${st.themes.map(t => `
+          <div class="theme-pill ${t.type}">
+            ${t.type === 'positive' ? '✓' : t.type === 'negative' ? '✗' : '○'} ${t.name}
+            <span class="pill-count">${t.count}</span>
+          </div>`).join('')}
+      </div>
+      <div class="theme-insights">
+        ${st.themes.map(t => `
+          <div class="theme-insight-card">
+            <div class="ti-name">${t.name}</div>
+            <div class="ti-text">${t.insight}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Operational Opportunities</div>
+        <div class="section-meta">Prioritized by impact on NOI & renewals</div>
+      </div>
+      <div class="opp-list">
+        ${st.opportunities.map(o => `
+          <div class="opp-item">
+            <div class="opp-icon ${o.priority}">${o.icon}</div>
+            <div class="opp-body">
+              <div class="opp-title">${o.title}</div>
+              <div class="opp-desc">${o.description}</div>
+            </div>
+            <span class="opp-badge ${o.priority}">${o.priority}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-label">💬 Response Strategy</div>
+      <div class="tip-text">${st.responseTip}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recent Reviews</div>
+        <div class="section-meta">Sample across rating spectrum</div>
+      </div>
+      <div class="review-list">${reviewsHTML}</div>
+    </div>`;
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function renderCharts() {
+  if (activeProperty === 'ALL') {
+    // Portfolio trend
+    const tCtx = document.getElementById('portTrendChart');
+    if (tCtx) {
+      chartInstances.portTrend = new Chart(tCtx, {
+        type: 'line',
+        data: {
+          labels: BANYAN_DATA.portMonths.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleString('default',{month:'short',year:'2-digit'}); }),
+          datasets: [{
+            label: 'Avg Rating', data: BANYAN_DATA.portAvgs,
+            borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.07)',
+            borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#c9a84c',
+            tension: 0.4, fill: true
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } },
+          scales: { y: { min: 1, max: 5, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } } } }
+      });
+    }
+    // Property bar chart
+    const bCtx = document.getElementById('portBarChart');
+    if (bCtx) {
+      const props = BANYAN_DATA.properties;
+      const avgs = props.map(p => BANYAN_DATA.props[p].avg);
+      const colors = avgs.map(a => a >= 4.5 ? '#2d5a3d' : a >= 4.0 ? '#c9a84c' : '#c2522b');
+      chartInstances.portBar = new Chart(bCtx, {
+        type: 'bar',
+        data: {
+          labels: props.map(p => p.replace('Banyan ','').replace(' Apartments','').replace(' Single Family Homes','')),
+          datasets: [{ data: avgs, backgroundColor: colors, borderRadius: 3 }]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+          scales: { x: { min: 3, max: 5, ticks: { font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            y: { ticks: { font: { size: 9 } }, grid: { display: false } } } }
+      });
+    }
+  } else {
+    const st = BANYAN_DATA.props[activeProperty];
+    const tCtx = document.getElementById('trendChart');
+    if (tCtx && st.monthlyLabels.length) {
+      chartInstances.trend = new Chart(tCtx, {
+        type: 'line',
+        data: {
+          labels: st.monthlyLabels.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleString('default',{month:'short',year:'2-digit'}); }),
+          datasets: [{
+            label: 'Avg Rating', data: st.monthlyAvgs,
+            borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.07)',
+            borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#c9a84c', tension: 0.4, fill: true
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } },
+          scales: { y: { min: 1, max: 5, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } } } }
+      });
+    }
+    const dCtx = document.getElementById('distChart');
+    if (dCtx) {
+      chartInstances.dist = new Chart(dCtx, {
+        type: 'bar',
+        data: {
+          labels: ['1★','2★','3★','4★','5★'],
+          datasets: [{ data: [st.one, st.two, st.three, st.four, st.five],
+            backgroundColor: ['#c2522b','#e8956b','#c9a84c','#7cbb8a','#2d5a3d'], borderRadius: 3 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } },
+          scales: { y: { ticks: { font: { size: 10 } }, grid: { color: '#ede9e1' } },
+            x: { ticks: { font: { size: 11 } }, grid: { display: false } } } }
+      });
+    }
+  }
+}
+</script>
+</body>
+</html>
